@@ -1,0 +1,10 @@
+**/.vs
+**/.vs/**
+**/bin
+**/bin/**
+**/intermediate
+**/intermediate/**
+*.opendb
+*.sdf
+*.suo
+*.user
