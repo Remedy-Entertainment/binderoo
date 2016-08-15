@@ -128,7 +128,7 @@ pragma( inline ) JSONValue serialise( Type )( ref Type pointer ) if( isPointer!(
 pragma( inline ) void deserialise( Type )( ref Type target, JSONValue source ) if( isPointer!( Type ) )
 {
 	// TODO: Deeper pointer inspection
-	size_t rawPtr = source.object[ "index" ].uinteger;
+	auto rawPtr = source.object[ "index" ].uinteger;
 	if( rawPtr != 0 )
 	{
 		target = new PointerTarget!( Type );
