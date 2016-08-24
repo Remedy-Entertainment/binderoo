@@ -290,7 +290,28 @@ mixin template GenerateImports( ThisType )
 							{
 								parameterNames ~= FunctionString!( Function ).ParameterNames;
 							}
-							functionCalls ~= "pragma( inline )" ~ FunctionString!( Function ).DDeclNoLinkage ~ " { auto thisObj = &this; return __methodtableData.function" ~ to!string( iIndex++ ) ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }";
+							functionCalls ~= "pragma( inline ) " ~ FunctionString!( Function ).DDeclNoLinkage ~ " { auto thisObj = &this; return __methodtableData.function" ~ to!string( iIndex ) ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }";
+
+							static if( Function.HasUDA!( BindGetter ) )
+							{
+								static assert( Function.ParameterCount == 0, "Getter function " ~ Function.Name ~ " has parameters! It cannot be marked as a getter property." );
+								static assert( Function.HasReturnType, "Getter function " ~ Function.Name ~ " does not return anything!" );
+
+								enum PropertyName = Function.GetUDA!( BindGetter ).strPropertyName;
+
+								functionCalls ~= "pragma( inline ) @property " ~ PropertyName ~ "() { auto thisObj = &this; return __methodtableData.function" ~ to!string( iIndex ) ~ "( thisObj ); }";
+							}
+
+							static if( Function.HasUDA!( BindSetter ) )
+							{
+								static assert( Function.ParameterCount == 1, "Setter function " ~ Function.Name ~ " has extra parameters! It cannot be marked as a getter property." );
+
+								enum PropertyName = Function.GetUDA!( BindSetter ).strPropertyName;
+
+								functionCalls ~= "pragma( inline ) @property " ~ PropertyName ~ "( " ~ Function.Parameter!( 0 ).Type.stringof ~ " val ) { auto thisObj = &this; __methodtableData.function" ~ to!string( iIndex ) ~ "( thisObj, val ); return val; }";
+							}
+
+							++iIndex;
 						}
 					}
 				}
