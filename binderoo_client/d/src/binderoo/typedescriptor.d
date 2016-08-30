@@ -65,7 +65,7 @@ struct TypeDescriptor( T, bool bIsRef = false )
 	alias			Type							= T;
 	enum			Name							= T.stringof;
 
-	alias			UnqualifiedType					= Unqual!( T );
+	alias			UnqualifiedType					= Unqualified!( T );
 
 	enum			Size							= T.sizeof;
 
