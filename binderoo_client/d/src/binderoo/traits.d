@@ -85,6 +85,12 @@ template IsImmutable( T )
 }
 //----------------------------------------------------------------------------
 
+template IsInOut( T )
+{
+	enum IsInOut = is( T == inout( BaseT ), BaseT );
+}
+//----------------------------------------------------------------------------
+
 template IsUserType( T )
 {
 	enum IsUserType = is( T == struct ) || is( T == class ) || is( T == enum ) || is( T == interface ) || is( T == union );
@@ -168,7 +174,7 @@ template IsVariable( X... ) if ( X.length == 1 )
 		{
 			enum IsVariable = is( typeof( X [ 0 ] ) )
 							&& !is( typeof( X [ 0 ] ) == void )
-							&& isMutable!( typeof( X[ 0 ] ) );
+							&& IsMutable!( typeof( X[ 0 ] ) );
 		}
 	}
 	else
@@ -197,9 +203,46 @@ template PointerOf( T )
 }
 //----------------------------------------------------------------------------
 
+template IsMutable( T )
+{
+	enum IsMutable = !( is( T == const )
+						|| is( T == immutable )
+						|| is( T == inout ) );
+}
+//----------------------------------------------------------------------------
+
+template Unqualified( T )
+{
+	static if(		is( T A == immutable A )
+				||	is( T A == shared inout const A )
+				||	is( T A == shared inout A )
+				||	is( T A == inout const A )
+				||	is( T A == inout A )
+				||	is( T A == shared const A )
+				||	is( T A == shared A )
+				||	is( T A == const A ) )
+	{
+		alias Unqualified = A;
+	}
+	else
+	{
+		alias Unqualified = T;
+	}
+}
+//----------------------------------------------------------------------------
+
 template TemplateParametersOf( T )
 {
-	alias TemplateParametersOf = TypeTuple!( );
+	static if( !IsMutable!( T ) )
+	{
+		alias UnqualifiedType = Unqualified!( T );
+		alias TemplateParametersOf = TemplateParametersOf!( UnqualifiedType );
+	}
+	else
+	{
+		private import std.typetuple;
+		alias TemplateParametersOf = TypeTuple!( );
+	}
 }
 //----------------------------------------------------------------------------
 
@@ -211,9 +254,24 @@ template TemplateParametersOf( T : U!( Params ), alias U, Params... )
 }
 //----------------------------------------------------------------------------
 
+template TemplateParametersOf( T : __vector( Type[ Length ] ), Type, size_t Length )
+{
+	private import std.typetuple;
+
+	alias TemplateParametersOf = TypeTuple!( Type[ Length ] );
+}
+//----------------------------------------------------------------------------
+
 template IsTemplatedType( T )
 {
-	enum IsTemplatedType = false;
+	static if( IsMutable!( T ) )
+	{
+		enum IsTemplatedType = false;
+	}
+	else
+	{
+		alias IsTemplatedType = IsTemplatedType!( Unqualified!( T ) );
+	}
 }
 //----------------------------------------------------------------------------
 
