@@ -30,17 +30,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module binderoo.math.angle;
 //----------------------------------------------------------------------------
 
-enum Pi( T : float ) = 3.141592654f;
-enum Pi( T : double ) = 3.141592653589793238;
-//----------------------------------------------------------------------------
-
-enum HalfPi( T ) = Pi!T * T( 0.5 );
-enum QuarterPi( T ) = Pi!T * T( 0.25 );
-//----------------------------------------------------------------------------
-
-enum PercentOfPi( T, T percent ) = Pi!T * percent;
-//----------------------------------------------------------------------------
-
 struct Degrees
 {
 	float	m_data = 0.0f;
