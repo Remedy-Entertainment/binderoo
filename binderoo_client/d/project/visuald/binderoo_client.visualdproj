@@ -419,6 +419,13 @@
     <File path="..\..\src\binderoo\binding\inheritance.d" />
     <File path="..\..\src\binderoo\binding\serialise.d" />
    </Folder>
+   <Folder name="math">
+    <File path="..\..\src\binderoo\math\angle.d" />
+    <File path="..\..\src\binderoo\math\constants.d" />
+    <File path="..\..\src\binderoo\math\quaternion.d" />
+    <File path="..\..\src\binderoo\math\transform.d" />
+    <File path="..\..\src\binderoo\math\vector.d" />
+   </Folder>
    <Folder name="scripting">
     <File path="..\..\src\binderoo\scripting\attributes.d" />
     <File path="..\..\src\binderoo\scripting\scripting.d" />
