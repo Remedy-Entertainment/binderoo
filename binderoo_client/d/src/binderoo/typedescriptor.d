@@ -118,6 +118,7 @@ struct TypeDescriptor( T, bool bIsRef = false )
 //----------------------------------------------------------------------------
 //----------------------------------------------------------------------------
 
+// Mark up your user types with this
 struct CTypeName
 {
 	string name;
@@ -130,6 +131,21 @@ struct CTypeName
 		hash = fnv1a_64( name );
 	}
 }
+//----------------------------------------------------------------------------
+
+// Dealing with a native type or library type? Stick this somewhere visible.
+enum CTypeNameUndefinedOverride			= "undefined";
+enum CTypeNameOverride( T )				= CTypeNameUndefinedOverride;
+//----------------------------------------------------------------------------
+
+// Default overrides
+enum CTypeNameOverride( T : ushort )	= "unsigned short";
+enum CTypeNameOverride( T : uint )		= "unsigned int";
+enum CTypeNameOverride( T : wchar )		= "wchar_t";
+enum CTypeNameOverride( T : byte )		= "char";
+enum CTypeNameOverride( T : ubyte )		= "unsigned char";
+enum CTypeNameOverride( T : long )		= "int64_t";
+enum CTypeNameOverride( T : ulong )		= "uint64_t";
 //----------------------------------------------------------------------------
 
 template CTypeString( T )
@@ -176,6 +192,10 @@ template CTypeString( T )
 	{
 		enum CTypeString = "const " ~ CTypeString!( Unqual!( T ) );
 	}
+	else static if( CTypeNameOverride!( T ) != CTypeNameUndefinedOverride )
+	{
+		enum CTypeString = CTypeNameOverride!( T );
+	}
 	else static if( IsUserType!( T ) )
 	{
 		static if( HasUDA!( T, CTypeName ) )
@@ -186,34 +206,6 @@ template CTypeString( T )
 		{
 			enum CTypeString = TemplateTypeString!( T ) ~ TemplateParametersString!( T );
 		}
-	}
-	else static if( is( T == ushort ) )
-	{
-		enum CTypeString = "unsigned short";
-	}
-	else static if( is( T == uint ) )
-	{
-		enum CTypeString = "unsigned int";
-	}
-	else static if( is( T == wchar ) )
-	{
-		enum CTypeString = "wchar_t";
-	}
-	else static if( is( T == byte ) )
-	{
-		enum CTypeString = "char";
-	}
-	else static if( is( T == ubyte ) )
-	{
-		enum CTypeString = "unsigned char";
-	}
-	else static if( is( T == long ) )
-	{
-		enum CTypeString = "int64_t";
-	}
-	else static if( is( T == ulong ) )
-	{
-		enum CTypeString = "uint64_t";
 	}
 	else
 	{
