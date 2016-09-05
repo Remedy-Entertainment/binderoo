@@ -68,6 +68,13 @@ struct BindRawImport
 }
 //----------------------------------------------------------------------------
 
+// A function marked with BindDisallow will not define the wrapper function
+// in cases where you still need to know about it.
+struct BindDisallow
+{
+}
+//----------------------------------------------------------------------------
+
 struct BindVirtual
 {
 	int		iIntroducedVersion		= -1;
