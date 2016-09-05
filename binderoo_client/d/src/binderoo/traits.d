@@ -281,12 +281,52 @@ template IsTemplatedType( T : U!( Params ), alias U, Params... )
 }
 //----------------------------------------------------------------------------
 
+template TemplateOf( T )
+{
+	alias TemplateOf = void;
+}
+//----------------------------------------------------------------------------
+
+template TemplateOf( T : U!( Params ), alias U, Params... )
+{
+	alias TemplateOf = U;
+}
+//----------------------------------------------------------------------------
+
 template SupportsAppend( T : U[], U )
 {
 	enum SupportsAppend = true;
 }
 //----------------------------------------------------------------------------
 
+// This one currently fails under some circumstances.
+/+template FullyQualifiedNameInsideModule( T )
+{
+	static if( is( T : U*, U ) )
+	{
+		enum FullyQualifiedNameInsideModule = FullyQualifiedNameInsideModule!( U ) ~ "*";
+	}
+	else static if( __traits( compiles, __traits( parent, T ) ) )
+	{
+		alias Symbol = Identity!( __traits( parent, T ) );
+
+		static if( is( Symbol ) )
+		{
+			enum FullyQualifiedNameInsideModule = FullyQualifiedNameInsideModule!( Symbol ) ~ "." ~ T.stringof;
+		}
+		else
+		{
+			enum FullyQualifiedNameInsideModule = T.stringof;
+		}
+
+	}
+	else
+	{
+		enum FullyQualifiedNameInsideModule = T.stringof;
+	}
+}
+//----------------------------------------------------------------------------
++/
 string[] gatherImports( T )()
 {
 	// Not complete, does not parse member types correctly
