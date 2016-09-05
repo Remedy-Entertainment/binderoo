@@ -189,7 +189,7 @@ mixin template GenerateImports( ThisType )
 							}
 
 							string pointerName = "function" ~ to!string( iIndex++ );
-							functionCalls ~= "@InheritanceVirtualCall pragma( inline )" ~ FunctionString!( Function ).DDeclNoLinkage ~ " { auto thisObj = &this; return __vtableData." ~ pointerName ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }";
+							functionCalls ~= "@InheritanceVirtualCall pragma( inline ) " ~ FunctionString!( Function ).DDeclNoLinkage ~ " { auto thisObj = &this; return __vtableData." ~ pointerName ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }";
 							//functionCalls ~= "static private auto __vtablecall_" ~ pointerName ~ "( " ~ staticParameterNames.joinWith( ", " ) ~ " ) { return __vtableData." ~ pointerName ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }";
 						}
 					}
