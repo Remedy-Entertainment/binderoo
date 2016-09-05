@@ -334,10 +334,10 @@ mixin template GenerateImports( ThisType )
 	__gshared VTable		__vtableData;
 	__gshared MethodTable	__methodtableData;
 
-	/+version( InheritanceVTableDebug )+/ pragma( msg, VTable.generateAccessorsString() );
+	version( InheritanceVTableDebug ) pragma( msg, VTable.generateAccessorsString() );
 	mixin( VTable.generateAccessorsString() );
 
-	/+version( InheritanceMTableDebug )+/ pragma( msg, MethodTable.generateAccessorsString() );
+	version( InheritanceMTableDebug ) pragma( msg, MethodTable.generateAccessorsString() );
 	mixin( MethodTable.generateAccessorsString() );
 }
 //----------------------------------------------------------------------------
