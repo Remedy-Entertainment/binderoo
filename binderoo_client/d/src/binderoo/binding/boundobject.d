@@ -101,7 +101,10 @@ struct BoundObjectFunctions( Type )
 
 		GC.addRange( mem.ptr, TypeSize );
 
-		return emplace!( Type )( mem );
+		Type* pVal = cast(Type*)mem;
+		*pVal = Type.init;
+
+		return cast(void*)mem;
 	}
 
 	static extern( C ) void deallocObj( void* pObj )
