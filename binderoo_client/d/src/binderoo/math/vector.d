@@ -375,6 +375,10 @@ struct VectorFloat
 		//------------------------------------------------------------------------
 	}
 
+	final this( string s ) { import std.conv : to; m_data.array = to!( float[ 4 ] )( s ); }
+	final string toString() { import std.conv : to; return to!string( m_data.array ); }
+	//------------------------------------------------------------------------
+
 package:
 	float4 m_data;
 }
