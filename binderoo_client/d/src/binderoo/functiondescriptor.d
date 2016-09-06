@@ -579,6 +579,7 @@ struct FunctionString( Desc ) if( IsFunctionDescriptor!( Desc )() )
 
 	private static string generateCSignature()
 	{
+		enum ConstString = Desc.IsConst ? " const" : "";
 		string generateParameterString()
 		{
 			string[] parameterTypes;
@@ -589,12 +590,14 @@ struct FunctionString( Desc ) if( IsFunctionDescriptor!( Desc )() )
 			return parameterTypes.joinWith( ", " );
 		}
 
-		return TypeString!( ReturnDescriptor ).CDecl ~ "(" ~ generateParameterString() ~ ")";
+		return TypeString!( ReturnDescriptor ).CDecl ~ "(" ~ generateParameterString() ~ ")" ~ ConstString;
 	}
 	//------------------------------------------------------------------------
 
 	private static string generateFullyQualifiedName( alias stringSymbol )()
 	{
+		enum ConstString = Desc.IsConst ? " const" : "";
+
 		string generateParameterString( uint iIndex )()
 		{
 			static if( iIndex >= TypeDescriptor.ParameterCount )
@@ -617,7 +620,7 @@ struct FunctionString( Desc ) if( IsFunctionDescriptor!( Desc )() )
 			enum namespaceString = "";
 		}
 
-		return mixin( "TypeString!( ReturnDescriptor )." ~ stringSymbol ) ~ pointerString ~ TypeDescriptor.FunctionName ~ "( " ~ generateParameterString!( 0 )() ~ ")";
+		return mixin( "TypeString!( ReturnDescriptor )." ~ stringSymbol ) ~ pointerString ~ TypeDescriptor.FunctionName ~ "( " ~ generateParameterString!( 0 )() ~ ")" ~ ConstString;
 	};
 	//------------------------------------------------------------------------
 
