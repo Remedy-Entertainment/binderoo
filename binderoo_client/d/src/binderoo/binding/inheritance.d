@@ -191,7 +191,7 @@ mixin template GenerateImports( ThisType )
 								}
 
 								string pointerName = "function" ~ to!string( iIndex );
-								functionCalls ~= "@InheritanceVirtualCall pragma( inline ) " ~ FunctionString!( Function ).DDeclNoLinkage ~ " { auto thisObj = &this; return __vtableData." ~ pointerName ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }";
+								functionCalls ~= "@InheritanceVirtualCall pragma( inline ) " ~ FunctionString!( Function ).DDeclNoLinkage ~ " { " ~ ThisType.stringof ~ "* thisObj = cast(" ~ ThisType.stringof ~ "*)&this; return __vtableData." ~ pointerName ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }";
 								//functionCalls ~= "static private auto __vtablecall_" ~ pointerName ~ "( " ~ staticParameterNames.joinWith( ", " ) ~ " ) { return __vtableData." ~ pointerName ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }";
 							}
 							++iIndex;
@@ -290,13 +290,12 @@ mixin template GenerateImports( ThisType )
 						{
 							static if( !Function.HasUDA!( BindDisallow ) )
 							{
-								string[] parameterNames;
-								parameterNames ~= "thisObj";
+								string[] parameterNames = [  "thisObj" ];
 								static if( FunctionString!( Function ).ParameterNames.length > 0 )
 								{
 									parameterNames ~= FunctionString!( Function ).ParameterNames;
 								}
-								functionCalls ~= "pragma( inline ) " ~ FunctionString!( Function ).DDeclNoLinkage ~ " { auto thisObj = &this; return __methodtableData.function" ~ to!string( iIndex ) ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }";
+								functionCalls ~= "pragma( inline ) " ~ FunctionString!( Function ).DDeclNoLinkage ~ " { " ~ ThisType.stringof ~ "* thisObj = cast(" ~ ThisType.stringof ~ "*)&this; return __methodtableData.function" ~ to!string( iIndex ) ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }";
 
 								static if( Function.HasUDA!( BindGetter ) )
 								{
