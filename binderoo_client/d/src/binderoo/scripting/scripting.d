@@ -220,15 +220,30 @@ private void executeFunctionCall( T )( ref T obj, Symbol[] symbols, out Executio
 		return modules.joinWith( "\n" );
 	}
 
-	string generateFunctionParametersMixin( Function )()
+	string generateFunctionParametersCallMixin( Function )()
 	{
+		import std.conv : to;
+
 		string[] parameters;
 		foreach( iIndex, Parameter; Function.ParametersAsTuple )
 		{
-			parameters ~= "std.conv.to!( " ~ fullyQualifiedName!( Parameter.UnqualifiedType ) ~ " )( symbols[ 0 ].parameters[ " ~ iIndex.stringof ~ " ] )";
+			parameters ~= "param" ~ to!string( iIndex );
 		}
 
 		return parameters.joinWith( ", " );
+	}
+
+	string generateFunctionParametersDeclarationMixin( Function )()
+	{
+		import std.conv : to;
+
+		string[] parameters;
+		foreach( iIndex, Parameter; Function.ParametersAsTuple )
+		{
+			parameters ~= "auto param" ~ to!string( iIndex ) ~ " = std.conv.to!( " ~ fullyQualifiedName!( Parameter.UnqualifiedType ) ~ " )( symbols[ 0 ].parameters[ " ~ iIndex.stringof ~ " ] )";
+		}
+
+		return parameters.joinWith( "  ", ";\n", ";\n" );
 	}
 
 	string generateSwitchMixin()
@@ -239,8 +254,11 @@ private void executeFunctionCall( T )( ref T obj, Symbol[] symbols, out Executio
 			static if( !ShouldIgnore!( Function ) )
 			{
 				output ~=	"case \"" ~ Function.Name ~ "\":\n"
-							~ "if( symbols[ 0 ].parameters.length == " ~ Function.ParametersAsTuple.length.stringof ~ " )"
-							~ "{ obj." ~ Function.Name ~ "( " ~ generateFunctionParametersMixin!( Function )() ~ " ); }\n"
+							~ "if( symbols[ 0 ].parameters.length == " ~ Function.ParametersAsTuple.length.stringof ~ " )\n"
+							~ "{\n"
+							~ generateFunctionParametersDeclarationMixin!( Function )
+							~ "  obj." ~ Function.Name ~ "( " ~ generateFunctionParametersCallMixin!( Function )() ~ " );\n"
+							~ "}\n"
 							~ "else { result = ExecutionResult( ExecutionError.IncorrectParameters, \"Expected " ~ Function.ParametersAsTuple.length.stringof ~ " parameters, received \" ~ to!string( symbols[ 0 ].parameters.length ) ); }\n"
 							~ "break;\n";
 			}
