@@ -106,7 +106,10 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 
 				static if( mixin( "IsSomeType!( " ~ AliasString ~ " )" ) )
 				{
-					static if( mixin( "IsUserTypeButNotEnum!( " ~ AliasString ~ " )" ) && Alias == mixin( AliasString ~ ".stringof" ) )
+					mixin( "alias Type = " ~ AliasString ~ ";" );
+					mixin( "import " ~ moduleName!( Type ) ~ ";" );
+
+					static if( IsUserTypeButNotEnum!( Type ) && Alias == Type.stringof )
 					{
 						indices ~= AliasString;
 					}
@@ -145,6 +148,7 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 			return objects;
 		}
 
+		mixin( "import " ~ moduleName!( functionsToImport ) ~ ";" );
 		alias ModuleTypes = ModuleTypeDescriptors!( void, __traits( allMembers, mixin( moduleName!( functionsToImport ) ) ) );
 		return gatherFor!( ModuleTypes )();
 	}
@@ -232,6 +236,8 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 			return imports;
 		}
 
+		mixin( "import " ~ moduleName!( functionsToImport ) ~ ";" );
+
 		alias Types = ModuleTypeDescriptors!( void, __traits( allMembers, mixin( moduleName!( functionsToImport ) ) ) );
 		return gatherFor!( Types )();
 	}
@@ -274,6 +280,7 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 		}
 
 
+		mixin( "import " ~ moduleName!( functionsToImport ) ~ ";" );
 		return functionGrabber!( void, __traits( allMembers, mixin( moduleName!( functionsToImport ) ) ) );
 	}
 
