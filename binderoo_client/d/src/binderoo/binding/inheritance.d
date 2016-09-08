@@ -134,7 +134,7 @@ mixin template GenerateImports( ThisType )
 
 					foreach( Function; FunctionDescriptors!( CurrType.MethodDescriptor ) )
 					{
-						static if( Function.HasUDA!( BindVirtual ) )
+						static if( Function.HasUDA!( BindVirtual ) || Function.HasUDA!( BindVirtualDestructor ) )
 						{
 							alias FunctionDetails = Function.GetUDA!( BindVirtual );
 
@@ -177,7 +177,7 @@ mixin template GenerateImports( ThisType )
 				{
 					foreach( Function; FunctionDescriptors!( CurrType.MethodDescriptor ) )
 					{
-						static if( Function.HasUDA!( BindVirtual ) )
+						static if( Function.HasUDA!( BindVirtual ) || Function.HasUDA!( BindVirtualDestructor ) )
 						{
 							static if( !Function.HasUDA!( BindDisallow ) )
 							{
