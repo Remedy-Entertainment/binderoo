@@ -152,6 +152,12 @@ template IsSomeType( T )
 }
 //----------------------------------------------------------------------------
 
+template IsSomeType( T : void )
+{
+	enum IsSomeType = false;
+}
+//----------------------------------------------------------------------------
+
 template IsSomeType( alias symbol )
 {
 	enum IsSomeType = is( symbol );
