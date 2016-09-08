@@ -89,6 +89,27 @@ struct BindMethod
 }
 //----------------------------------------------------------------------------
 
+struct BindConstructor
+{
+	int		iIntroducedVersion		= -1;
+	int		iMaxVersion				= -1;
+}
+//----------------------------------------------------------------------------
+
+struct BindDestructor
+{
+	int		iIntroducedVersion		= -1;
+	int		iMaxVersion				= -1;
+}
+//----------------------------------------------------------------------------
+
+struct BindVirtualDestructor
+{
+	int		iIntroducedVersion		= -1;
+	int		iMaxVersion				= -1;
+}
+//----------------------------------------------------------------------------
+
 struct BindStatic
 {
 	int		iIntroducedVersion		= -1;
