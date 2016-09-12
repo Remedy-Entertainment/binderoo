@@ -64,7 +64,7 @@ struct Symbol
 {
 	enum Type : uint { Incomplete, ObjectAlias, FunctionCall };
 
-	this( string token ) pure @safe nothrow
+	this( string token ) pure nothrow
 	{
 		auto uOpenBracketPosition = token.indexOf( '(' );
 		auto uCloseBracketPosition = token.indexOf( ')' );
@@ -95,7 +95,7 @@ struct Symbol
 }
 //----------------------------------------------------------------------------
 
-private Symbol[] symbolize( string[] tokens ) pure @safe nothrow
+private Symbol[] symbolize( string[] tokens ) pure nothrow
 {
 	Symbol[] symbols;
 	foreach( ref token; tokens )
