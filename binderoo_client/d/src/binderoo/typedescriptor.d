@@ -214,22 +214,35 @@ template CTypeString( T )
 }
 //----------------------------------------------------------------------------
 
+// Value writing is required for template parameters
+template CTypeString( long val )
+{
+	import std.conv : to; enum CTypeString = to!string( val );
+}
+//----------------------------------------------------------------------------
+
+template CTypeString( ulong val )
+{
+	import std.conv : to; enum CTypeString = to!string( val );
+}
+//----------------------------------------------------------------------------
+
 struct TypeString( T, bool bIsRef = false )
 {
-	static private string typeStringD( string T, bool bIsRef )
+	static private string typeStringD( string T )
 	{
 		return ( bIsRef ? "ref " : "" ) ~ T;
 	}
 
-	static private string typeStringC( string T , bool bIsRef )
+	static private string typeStringC( string T )
 	{
 		return T ~ ( bIsRef ? "&" : "" );
 	}
 	//------------------------------------------------------------------------
 
-	enum			FullyQualifiedDDecl				= typeStringD( fullyQualifiedName!( T ), bIsRef );
-	enum			DDecl							= typeStringD( T.stringof, bIsRef );
-	enum			CDecl							= typeStringC( CTypeString!( T ), bIsRef );
+	enum			FullyQualifiedDDecl				= typeStringD( fullyQualifiedName!( T ) );
+	enum			DDecl							= typeStringD( T.stringof );
+	enum			CDecl							= typeStringC( CTypeString!( T ) );
 }
 //----------------------------------------------------------------------------
 
