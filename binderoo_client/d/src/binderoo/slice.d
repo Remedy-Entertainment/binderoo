@@ -38,6 +38,8 @@ struct Slice( Type )
 	size_t					uLength;
 	Type*					pData;
 
+	final @property			Length() const										{ return uLength; }
+
 	final Type[]			opIndex()											{ return pData[ 0 .. uLength ]; }
 	final ref Type			opIndex( size_t iElement )							{ return pData[ iElement ]; }
 	final Type[]			opSlice( size_t iFrom, size_t iTo )					{ return pData[ iFrom .. iTo ]; }
