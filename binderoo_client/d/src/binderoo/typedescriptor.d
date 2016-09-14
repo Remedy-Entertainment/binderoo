@@ -122,12 +122,23 @@ struct TypeDescriptor( T, bool bIsRef = false )
 struct CTypeName
 {
 	string name;
+	string header;
 	ulong hash;
+
+	@disable this();
 
 	this( string n )
 	{
 		import binderoo.hash;
 		name = n;
+		hash = fnv1a_64( name );
+	}
+
+	this( string n, string h )
+	{
+		import binderoo.hash;
+		name = n;
+		header = h;
 		hash = fnv1a_64( name );
 	}
 }
