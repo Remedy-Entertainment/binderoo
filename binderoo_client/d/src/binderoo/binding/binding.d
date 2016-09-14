@@ -79,8 +79,8 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 	//------------------------------------------------------------------------
 
 	__gshared align( 64 ) BoundObject[]							objectsToExport;
-	__gshared align( 64 ) BoundFunction[]						functionsToImport;
-	__gshared align( 64 ) BoundFunction[]						functionsToExport;
+	__gshared align( 16 ) BoundFunction[]						functionsToImport;
+	__gshared align( 16 ) BoundFunction[]						functionsToExport;
 	//------------------------------------------------------------------------
 
 	template ModuleTypeDescriptors( ParentClass, Aliases... )
@@ -176,6 +176,8 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 			static if( IsStaticMember!( Type, TableStaticMember ) )
 			{
 				alias TableType = typeof( __traits( getMember, Type, TableStaticMember ) );
+				alias CTypeData = GetUDA!( Type, CTypeName );
+
 				//pragma( msg, Type.stringof ~ " " ~ TableType.stringof );
 
 				// More readable, but performs slower at compile time :-(
@@ -186,6 +188,8 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 
 				imports ~= BoundFunction(	DString( ImportData.strCName )
 				, DString( ImportData.strCSignature )
+				, DString( CTypeData.name )
+				, DString( CTypeData.header )
 				, BoundFunction.Hashes( ImportData.uNameHash, ImportData.uSignatureHash )
 				, mixin( "cast(void*) &" ~ fullyQualifiedName!( Type ) ~ "." ~ TableStaticMember ~ "." ~ Variable.Name )
 				, ImportData.iIntroducedVersion
@@ -210,6 +214,8 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 
 						imports ~= BoundFunction(	DString( ImportData.strCName )
 													, DString( ImportData.strCSignature )
+													, DString( CTypeData.name )
+													, DString( CTypeData.header )
 													, BoundFunction.Hashes( ImportData.uNameHash, ImportData.uSignatureHash )
 													, mixin( "cast(void*) &" ~ fullyQualifiedName!( Type ) ~ "." ~ TableStaticMember ~ "." ~ tableMember )
 													, ImportData.iIntroducedVersion
@@ -269,6 +275,8 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 
 					foundExports ~= BoundFunction( DString( FullName )
 													, DString( Signature )
+													, DString( "" )
+													, DString( "" )
 													, BoundFunction.Hashes( fnv1a_64( FullName ), fnv1a_64( Signature ) )
 													, mixin( "&" ~ fullyQualifiedName!( Symbol ) )
 													, ExportData.iIntroducedVersion
@@ -360,9 +368,27 @@ public string[] generateCPPStyleBindingDeclaration( BoundFunction[] functions )
 		return result;
 	}
 
-	size_t[][ string ] functionsByClass;
+	string[] outputs;
 
-	string outputs[];
+	string[] includes;
+
+	foreach( ref boundFunction; functions )
+	{
+		if( boundFunction.strRequiredInclude.Length > 0 )
+		{
+			string fullName = cast( string )boundFunction.strRequiredInclude;
+
+			if( !includes.canFind( fullName ) )
+			{
+				includes ~= fullName;
+			}
+		}
+	}
+
+
+	outputs ~= includes.joinWith( "#include \"", "\"", "\n" );
+
+	size_t[][ string ] functionsByClass;
 
 	foreach( iIndex, ref boundFunction; functions )
 	{
@@ -464,10 +490,10 @@ public string generateCPPStyleBindingDeclarationsForAllObjects()
 	import std.stdio;
 	foreach( decl; declarations )
 	{
-		writeln( decl, "\n\n" );
+		writeln( decl, "\n//----------------------------------------------------------------------------\n" );
 	}
 
-	return declarations.joinWith( "\n\n" );
+	return declarations.joinWith( "\n//----------------------------------------------------------------------------\n" );
 }
 //----------------------------------------------------------------------------
 
