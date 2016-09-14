@@ -176,6 +176,7 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 			static if( IsStaticMember!( Type, TableStaticMember ) )
 			{
 				alias TableType = typeof( __traits( getMember, Type, TableStaticMember ) );
+				//pragma( msg, Type.stringof ~ " " ~ TableType.stringof );
 
 				// More readable, but performs slower at compile time :-(
 				/+foreach( Variable; VariableDescriptorsByUDA!( TableType, BindRawImport ) )
@@ -200,6 +201,8 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 								   && HasUDA!( __traits( getMember, TableType, tableMember ), BindRawImport ) )
 					{
 						alias ImportData = GetUDA!( __traits( getMember, TableType, tableMember ), BindRawImport );
+
+						//pragma( msg, cast(string)ImportData.strCName ~ ", " ~ cast(string)ImportData.strCSignature );
 
 /*						enum NameHash = ImportData.uNameHash;
 						enum SignatureHash = ImportData.uSignatureHash;
@@ -291,12 +294,10 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 //----------------------------------------------------------------------------
 public void registerImportFunctions( BoundFunction[] imports )
 {
-	importFunctions.reserve( importFunctions.length + imports.length );
-
-	foreach( ref forImport; imports )
+	foreach( iCurrIndex, ref forImport; imports )
 	{
 		auto found = ( forImport.functionHashes in importFunctionIndices );
-		assert( found is null, "Hash collision!" );
+		assert( found is null, "Hash collision with imported function! \"" ~ cast(string)forImport.strFunctionName ~ "\" with signature \"" ~ cast(string)forImport.strFunctionSignature ~ "\" <-> \"" ~ cast(string)importFunctions[ *found ].strFunctionName ~ "\" with signature \"" ~ cast(string)importFunctions[ *found ].strFunctionSignature ~ "\"" );
 
 		size_t uIndex = importFunctions.length;
 		importFunctions ~= forImport;
@@ -309,14 +310,17 @@ public void registerExportedFunctions( BoundFunction[] exports )
 {
 	exportFunctions.reserve( exportFunctions.length + exports.length );
 
-	foreach( ref forexport; exports )
+	foreach( ref forExport; exports )
 	{
-		auto found = ( forexport.functionHashes in exportFunctionIndices );
-		assert( found is null, "Hash collision!" );
+		auto found = ( forExport.functionHashes in exportFunctionIndices );
+		if( found !is null )
+		{
+			assert( found is null, "Hash collision with exported function! \"" ~ cast(string)forExport.strFunctionName ~ "\" with signature \"" ~ cast(string)forExport.strFunctionSignature ~ "\" <-> \"" ~ cast(string)exportFunctions[ *found ].strFunctionName ~ "\" with signature \"" ~ cast(string)exportFunctions[ *found ].strFunctionSignature ~ "\"" );
+		}
 
 		size_t uIndex = exportFunctions.length;
-		exportFunctions ~= forexport;
-		exportFunctionIndices[ forexport.functionHashes ] = uIndex;
+		exportFunctions ~= forExport;
+		exportFunctionIndices[ forExport.functionHashes ] = uIndex;
 	}
 }
 //----------------------------------------------------------------------------
@@ -328,7 +332,10 @@ public void registerExportedObjects( BoundObject[] exports )
 	foreach( ref forExport; exports )
 	{
 		auto found = ( forExport.uFullyQualifiedNameHash in exportObjectIndices );
-		assert( found is null, "Hash collision!" );
+		if( found !is null )
+		{
+			assert( found is null, "Hash collision with exported object! \"" ~ cast(string)forExport.strFullyQualifiedName ~ "\" <-> \"" ~ cast(string)exportObjects[ *found ].strFullyQualifiedName ~ "\"" );
+		}
 
 		size_t uIndex = exportObjects.length;
 		exportObjects ~= forExport;
@@ -419,7 +426,7 @@ public string[] generateCPPStyleBindingDeclaration( BoundFunction[] functions )
 			}
 			else
 			{
-				definitionLines ~= "static void** getVTable_" ~ strClass ~ "() { " ~ strClass ~ " thisInstance; return *(void***)&thisInstance; }";
+				definitionLines ~= "static void** getVTable_" ~ strClass ~ "() { " ~ foundClass.key ~ " thisInstance; return *(void***)&thisInstance; }";
 				definitionLines ~= "static void** " ~ strVTableOf ~ " = getVTable_" ~ strClass ~ "();";
 				definitionLines ~= "static binderoo::ExportedMethod " ~ strExportedMethods ~ "[] =";
 				definitionLines ~= "{";
