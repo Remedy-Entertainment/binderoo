@@ -34,11 +34,11 @@ public import binderoo.slice;
 public import binderoo.typedescriptor;
 //----------------------------------------------------------------------------
 
-@CTypeName( "binderoo::BoundFunction" )
+@CTypeName( "binderoo::BoundFunction", "binderoo/boundfunction.h" )
 align( 64 )
 struct BoundFunction
 {
-	@CTypeName( "binderoo::BoundFunction::Resolution" )
+	@CTypeName( "binderoo::BoundFunction::Resolution", "binderoo/boundfunction.h" )
 	enum Resolution : char
 	{
 		Unresolved,
@@ -47,7 +47,7 @@ struct BoundFunction
 		Exported,
 	}
 
-	@CTypeName( "binderoo::BoundFunction::CallingConvention" )
+	@CTypeName( "binderoo::BoundFunction::CallingConvention", "binderoo/boundfunction.h" )
 	enum CallingConvention : char
 	{
 		Undefined,
@@ -55,7 +55,7 @@ struct BoundFunction
 		CPP,
 	}
 
-	@CTypeName( "binderoo::BoundFunction::FunctionKind" )
+	@CTypeName( "binderoo::BoundFunction::FunctionKind", "binderoo/boundfunction.h" )
 	enum FunctionKind : char
 	{
 		Undefined,
@@ -64,7 +64,7 @@ struct BoundFunction
 		Virtual,
 	}
 
-	@CTypeName( "binderoo::BoundFunction::Hashes" )
+	@CTypeName( "binderoo::BoundFunction::Hashes", "binderoo/boundfunction.h" )
 	struct Hashes
 	{
 		ulong				uFunctionNameHash;

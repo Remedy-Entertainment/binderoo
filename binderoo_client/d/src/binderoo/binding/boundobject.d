@@ -42,10 +42,10 @@ alias BoundObjectThunk			= extern( C ) void* function( void* );
 alias BoundObjectSerialise		= extern( C ) const( char )* function( void* );
 alias BoundObjectDeserialise	= extern( C ) void function( void*, const char* );
 
-@CTypeName( "binderoo::BoundObject" )
+@CTypeName( "binderoo::BoundObject", "binderoo/boundobject.h" )
 struct BoundObject
 {
-	@CTypeName( "binderoo::BoundObject::Type" )
+	@CTypeName( "binderoo::BoundObject::Type", "binderoo/boundobject.h" )
 	enum Type : int
 	{
 		Undefined,

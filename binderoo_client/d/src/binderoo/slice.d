@@ -32,7 +32,7 @@ module binderoo.slice;
 
 public import binderoo.typedescriptor;
 
-@CTypeName( "binderoo::Slice" )
+@CTypeName( "binderoo::Slice", "binderoo/slice.h" )
 struct Slice( Type )
 {
 	size_t					uLength;
