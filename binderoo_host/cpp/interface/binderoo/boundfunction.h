@@ -38,7 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace binderoo
 {
-	BIND_ALIGN( 64 ) struct BoundFunction
+	BIND_ALIGN( 16 ) struct BoundFunction
 	{
 		enum class Resolution : char
 		{
@@ -87,6 +87,8 @@ namespace binderoo
 
 		DString					strFunctionName;
 		DString					strFunctionSignature;
+		DString					strOwningClass;
+		DString					strRequiredInclude;
 		Hashes					functionHashes;
 		void*					pFunction;
 		int						iMinimumVersion;

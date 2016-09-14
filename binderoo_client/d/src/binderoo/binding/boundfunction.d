@@ -35,7 +35,7 @@ public import binderoo.typedescriptor;
 //----------------------------------------------------------------------------
 
 @CTypeName( "binderoo::BoundFunction", "binderoo/boundfunction.h" )
-align( 64 )
+align( 16 )
 struct BoundFunction
 {
 	@CTypeName( "binderoo::BoundFunction::Resolution", "binderoo/boundfunction.h" )
@@ -73,6 +73,8 @@ struct BoundFunction
 
 	DString					strFunctionName;
 	DString					strFunctionSignature;
+	DString					strOwningClass;
+	DString					strRequiredInclude;
 	Hashes					functionHashes;
 	void*					pFunction;
 	int						iMinimumVersion;
