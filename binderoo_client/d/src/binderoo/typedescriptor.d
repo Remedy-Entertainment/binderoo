@@ -157,6 +157,7 @@ enum CTypeNameOverride( T : byte )		= "char";
 enum CTypeNameOverride( T : ubyte )		= "unsigned char";
 enum CTypeNameOverride( T : long )		= "int64_t";
 enum CTypeNameOverride( T : ulong )		= "uint64_t";
+enum CTypeNameOverride( T : bool )		= "bool"; // Returns char otherwise when parsing functions? o_O
 //----------------------------------------------------------------------------
 
 template CTypeString( T )
