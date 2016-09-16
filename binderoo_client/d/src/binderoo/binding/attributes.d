@@ -75,6 +75,15 @@ struct BindDisallow
 }
 //----------------------------------------------------------------------------
 
+// A type marked with BindAbstract will indicate that the corresponding C++
+// type cannot instantiate thanks to the existence of pure virtual methods.
+// These types will not attempt to auto-generate C++ bindings.
+// TODO: Add more restrictions for instantiation etc
+struct BindAbstract
+{
+}
+//----------------------------------------------------------------------------
+
 struct BindVirtual
 {
 	int		iIntroducedVersion		= -1;
