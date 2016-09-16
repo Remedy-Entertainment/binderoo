@@ -65,13 +65,11 @@ namespace binderoo
 
 		enum class FunctionKind : char
 		{
-			Undefined,
-			Static,
-			Method,
-			Virtual,
-
-			Max,
-			Min = Undefined,
+			Undefined	= 0,
+			Static		= 0x1,
+			Method		= 0x2,
+			Virtual		= 0x4,
+			Abstract	= 0x8,
 		};
 		//--------------------------------------------------------------------
 
