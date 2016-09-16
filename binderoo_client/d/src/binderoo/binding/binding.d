@@ -372,6 +372,22 @@ public string[] generateCPPStyleBindingDeclaration( BoundFunction[] functions )
 
 	string[] includes;
 
+/*	outputs ~=	"#ifdef private\n"
+				"  #undef private\n"
+				"#endif\n"
+				"\n"
+				"#ifdef protected\n"
+				"  #undef protected\n"
+				"#endif\n"
+				"\n"
+				"// Dirty hack\n"
+				"#define _ALLOW_KEYWORD_MACROS\n"
+				"#define private public\n"
+				"#define protected public";*/
+
+	outputs ~=	"#include \"binderoo/defs.h\"\n"
+				"#include \"binderoo/exports.h\"";
+
 	foreach( ref boundFunction; functions )
 	{
 		if( boundFunction.strRequiredInclude.Length > 0 )
@@ -392,89 +408,61 @@ public string[] generateCPPStyleBindingDeclaration( BoundFunction[] functions )
 
 	foreach( iIndex, ref boundFunction; functions )
 	{
-		string fullName = cast( string )boundFunction.strFunctionName;
-
-		size_t uFoundClass = clamp( fullName.lastIndexOf( "::" ), 0, fullName.length );
-		string className = fullName[ 0 .. uFoundClass ];
+		string className = cast( string )boundFunction.strOwningClass;
 
 		functionsByClass[ className ] ~= iIndex;
 	}
 
 	foreach( foundClass; functionsByClass.byKeyValue )
 	{
-		size_t uFoundNamespace = clamp( foundClass.key.lastIndexOf( "::" ), 0, foundClass.key.length );
-		string strNamespace = foundClass.key[ 0 .. uFoundNamespace ];
-		size_t uFoundClass = ( uFoundNamespace != 0 ? uFoundNamespace + 2 : 0 );
-		string strClass = foundClass.key[ uFoundClass .. $ ];
-
-		string strSeparatedDefinition = strNamespace ~ ", " ~ strClass;
+		string strClass = foundClass.key;
+		string strClassWithoutNamespaces = strClass.replace( "::", "_" );
 
 		string definitionLines[];
 
-		version( BindingUseCDefines )
+		string strExportVersion = "iExportVersion_" ~ strClassWithoutNamespaces;
+		string strNumExportedMethods = "numExportedMethods_" ~ strClassWithoutNamespaces;
+		string strVTableOf = "vtableOf_" ~ strClassWithoutNamespaces;
+		string strExportedMethods = "exportedMethods_" ~ strClassWithoutNamespaces;
+		string strExportedClass = "exportedClass_" ~ strClassWithoutNamespaces;
+
+		definitionLines ~= "static const int " ~ strExportVersion ~ " = 1; // VERSION NUMBER IS A HACK";
+		definitionLines ~= "static size_t " ~ strNumExportedMethods ~ " = " ~ to!string( foundClass.value.length ) ~ ";";
+		if( foundClass.value.length == 0 )
 		{
-			definitionLines ~= "BIND_EXPORT_CLASS_BEGIN( " ~ strSeparatedDefinition ~ ", 1 )";
-
-			if( foundClass.value.length == 0 )
-			{
-				definitionLines ~= "  BIND_EXPORT_NONEWMETHODS,";
-			}
-			else
-			{
-				foreach( iIndex; foundClass.value )
-				{
-					BoundFunction func = functions[ iIndex ];
-
-					string fullName = cast( string )func.strFunctionName;
-
-					size_t uFoundClass = clamp( fullName.lastIndexOf( "::" ), 0, fullName.length );
-					string functionName = fullName[ uFoundClass + 2 .. $ ];
-
-					definitionLines ~= "  BIND_EXPORT_METHOD( " ~ strSeparatedDefinition ~ ", " ~ functionName ~ ", " ~ splitSignature( cast(string)func.strFunctionSignature ).joinWith( ", " ) ~ " ),";
-				}
-			}
-
-			definitionLines ~= "BIND_EXPORT_CLASS_END( " ~ strSeparatedDefinition ~ " );";
+			definitionLines ~= "static binderoo::ExportedMethod* " ~ strExportedMethods ~ " = nullptr;";
 		}
 		else
 		{
-			string strExportVersion = "iExportVersion_" ~ strClass;
-			string strNumExportedMethods = "numExportedMethods_" ~ strClass;
-			string strVTableOf = "vtableOf_" ~ strClass;
-			string strExportedMethods = "exportedMethods_" ~ strClass;
-			string strExportedClass = "exportedClass_" ~ strClass;
+			definitionLines ~= "static void** getVTable_" ~ strClassWithoutNamespaces ~ "() { " ~ foundClass.key ~ " thisInstance; return *(void***)&thisInstance; }";
+			definitionLines ~= "static void** " ~ strVTableOf ~ " = getVTable_" ~ strClassWithoutNamespaces ~ "();";
+			definitionLines ~= "static binderoo::ExportedMethod " ~ strExportedMethods ~ "[] =";
+			definitionLines ~= "{";
 
-			definitionLines ~= "static const int " ~ strExportVersion ~ " = 1; // VERSION NUMBER IS A HACK";
-			definitionLines ~= "static size_t " ~ strNumExportedMethods ~ " = " ~ to!string( foundClass.value.length ) ~ ";";
-			if( foundClass.value.length == 0 )
+			foreach( iCount, iIndex; foundClass.value )
 			{
-				definitionLines ~= "static binderoo::ExportedMethod* " ~ strExportedMethods ~ " = nullptr;";
-			}
-			else
-			{
-				definitionLines ~= "static void** getVTable_" ~ strClass ~ "() { " ~ foundClass.key ~ " thisInstance; return *(void***)&thisInstance; }";
-				definitionLines ~= "static void** " ~ strVTableOf ~ " = getVTable_" ~ strClass ~ "();";
-				definitionLines ~= "static binderoo::ExportedMethod " ~ strExportedMethods ~ "[] =";
-				definitionLines ~= "{";
+				BoundFunction func = functions[ iIndex ];
 
-				foreach( iCount, iIndex; foundClass.value )
+				if( func.eFunctionKind == BoundFunction.FunctionKind.Virtual )
 				{
-					BoundFunction func = functions[ iIndex ];
-
-					if( func.eFunctionKind == BoundFunction.FunctionKind.Virtual )
-					{
-						definitionLines ~= "\tbinderoo::ExportedMethod( \"" ~ cast( string )func.strFunctionName ~ "\", \"" ~ cast( string )func.strFunctionSignature ~ "\", " ~ strVTableOf ~ "[ " ~ to!string( iCount ) ~ " ] ),";
-					}
-					else
-					{
-						definitionLines ~= "\tbinderoo::ExportedMethod( \"" ~ cast( string )func.strFunctionName ~ "\", \"" ~ cast( string )func.strFunctionSignature ~ "\", &" ~ cast(string)func.strFunctionName ~ " ),";
-					}
+					definitionLines ~= "\tbinderoo::ExportedMethod( \"" ~ cast( string )func.strFunctionName ~ "\", \"" ~ cast( string )func.strFunctionSignature ~ "\", " ~ strVTableOf ~ "[ " ~ to!string( iCount ) ~ " ] ),";
 				}
-				definitionLines ~= "};";
-			}
+				else
+				{
+					auto strOriginalSig = cast( string )func.strFunctionSignature;
+					auto foundOpenBrackets = strOriginalSig.indexOf( '(' );
+					auto strReturnType = strOriginalSig[ 0 .. foundOpenBrackets ];
+					auto foundCloseBrackets = strOriginalSig.indexOf( ')' );
+					auto strParameters = strOriginalSig[ foundOpenBrackets .. foundCloseBrackets + 1 ];
+					auto strTypeCast = "( " ~ strReturnType ~ "(" ~ strClass ~ "::*)" ~ strParameters ~ " )";
 
-			definitionLines ~= "static binderoo::ExportedClass " ~ strExportedClass ~ "( " ~ strExportVersion ~ ", binderoo::DString( \"" ~ foundClass.key ~ "\" ), binderoo::DString( \"<unknown>\" ), binderoo::ExportedMethods( " ~ strExportedMethods ~ ", " ~ strNumExportedMethods ~ " ) );";
+					definitionLines ~= "\tbinderoo::ExportedMethod( \"" ~ cast( string )func.strFunctionName ~ "\", \"" ~ cast( string )func.strFunctionSignature ~ "\", " ~ strTypeCast ~ "&" ~ cast(string)func.strFunctionName ~ " ),";
+				}
+			}
+			definitionLines ~= "};";
 		}
+
+		definitionLines ~= "static binderoo::ExportedClass " ~ strExportedClass ~ "( " ~ strExportVersion ~ ", binderoo::DString( \"" ~ foundClass.key ~ "\" ), binderoo::DString( \"<unknown>\" ), binderoo::ExportedMethods( " ~ strExportedMethods ~ ", " ~ strNumExportedMethods ~ " ) );";
 
 		outputs ~= definitionLines.joinWith( "\n" );
 	}
