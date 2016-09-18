@@ -73,6 +73,13 @@ namespace binderoo
 		};
 		//--------------------------------------------------------------------
 
+		enum class Flags : char
+		{
+			None			= 0,
+			OwnerIsAbsract	= 0x1,
+		};
+		//--------------------------------------------------------------------
+
 		struct Hashes
 		{
 			uint64_t			uFunctionNameHash;
@@ -93,7 +100,7 @@ namespace binderoo
 		Resolution				eResolution;
 		CallingConvention		eCallingConvention;
 		FunctionKind			eFunctionKind;
-		char					eUnused;
+		Flags					eFlags;
 	};
 	//------------------------------------------------------------------------
 }

@@ -58,11 +58,18 @@ struct BoundFunction
 	@CTypeName( "binderoo::BoundFunction::FunctionKind", "binderoo/boundfunction.h" )
 	enum FunctionKind : char
 	{
-		Undefined	= 0,
-		Static		= 0x1,
-		Method		= 0x2,
-		Virtual		= 0x4,
-		Abstract	= 0x8,
+		Undefined		= 0,
+		Static			= 0x1,
+		Method			= 0x2,
+		Virtual			= 0x4,
+		Abstract		= 0x8,
+	}
+
+	@CTypeName( "binderoo::BoundFunction::Flags", "binderoo/boundfunction.h" )
+	enum Flags : char
+	{
+		None			= 0,
+		OwnerIsAbsract	= 0x1,
 	}
 
 	@CTypeName( "binderoo::BoundFunction::Hashes", "binderoo/boundfunction.h" )
@@ -82,7 +89,7 @@ struct BoundFunction
 	Resolution				eResolution;
 	CallingConvention		eCallingConvention;
 	FunctionKind			eFunctionKind;
-	char					eUnused = 0xAB;
+	Flags					eFlags;
 }
 //----------------------------------------------------------------------------
 
