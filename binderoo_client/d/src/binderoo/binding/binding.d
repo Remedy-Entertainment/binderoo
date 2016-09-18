@@ -206,6 +206,11 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 					{
 						alias ImportData = GetUDA!( __traits( getMember, TableType, tableMember ), BindRawImport );
 
+						BoundFunction.Flags foundFlags;
+
+						// TODO: Should automate this...
+						if( HasUDA!( Type, BindAbstract ) ) foundFlags |= BoundFunction.Flags.OwnerIsAbsract;
+
 						//pragma( msg, cast(string)ImportData.strCName ~ ", " ~ cast(string)ImportData.strCSignature );
 
 /*						enum NameHash = ImportData.uNameHash;
@@ -282,7 +287,8 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 													, ExportData.iIntroducedVersion
 													, BoundFunction.Resolution.Exported
 													, BoundFunction.CallingConvention.CPP
-													, BoundFunction.FunctionKind.Static );
+													, BoundFunction.FunctionKind.Static
+													, BoundFunction.Flags.None );
 				}
 
 			}
@@ -401,16 +407,18 @@ public string[] generateCPPStyleBindingDeclaration( BoundFunction[] functions )
 		}
 	}
 
-
 	outputs ~= includes.joinWith( "#include \"", "\"", "\n" );
 
 	size_t[][ string ] functionsByClass;
 
 	foreach( iIndex, ref boundFunction; functions )
 	{
-		string className = cast( string )boundFunction.strOwningClass;
+		if( boundFunction.eFlags ^ BoundFunction.Flags.OwnerIsAbsract )
+		{
+			string className = cast( string )boundFunction.strOwningClass;
 
-		functionsByClass[ className ] ~= iIndex;
+			functionsByClass[ className ] ~= iIndex;
+		}
 	}
 
 	foreach( foundClass; functionsByClass.byKeyValue )
