@@ -120,6 +120,8 @@ mixin template GenerateImports( ThisType )
 			string[] pointers;
 			string[] identifiers;
 
+			enum OwnerIsAbstract = HasUDA!( ThisType, BindAbstract ) ? "true" : "false";
+
 			int iIndex = 0;
 			foreach( CurrType; Types )
 			{
@@ -138,7 +140,7 @@ mixin template GenerateImports( ThisType )
 						{
 							alias FunctionDetails = Function.GetUDA!( BindVirtual );
 
-							string UDAs = "@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( ThisType, false ).CDecl ~ "::" ~ Function.Name ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", BindRawImport.FunctionKind.Virtual, " ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
+							string UDAs = "@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( ThisType, false ).CDecl ~ "::" ~ Function.Name ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", BindRawImport.FunctionKind.Virtual, " ~ OwnerIsAbstract ~ ", " ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
 							string identifier = "function" ~ to!string( iIndex++ );
 
 							identifiers ~= identifier;
@@ -231,6 +233,8 @@ mixin template GenerateImports( ThisType )
 			string[] modules;
 			string[] pointers;
 
+			enum OwnerIsAbstract = HasUDA!( ThisType, BindAbstract ) ? "true" : "false";
+
 			int iIndex = 0;
 			foreach( CurrType; Types )
 			{
@@ -249,7 +253,7 @@ mixin template GenerateImports( ThisType )
 						{
 							alias FunctionDetails = Function.GetUDA!( BindMethod );
 
-							string UDAs = "@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( ThisType, false ).CDecl ~ "::" ~ Function.Name ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", BindRawImport.FunctionKind.Method, " ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
+							string UDAs = "@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( ThisType, false ).CDecl ~ "::" ~ Function.Name ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", BindRawImport.FunctionKind.Method, " ~ OwnerIsAbstract ~ ", "  ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
 							string identifier = "function" ~ to!string( iIndex++ );
 
 							pointers ~= UDAs ~ "\nRawMemberFunctionPointer!( FunctionDescriptor!(" ~ fullyQualifiedName!( Function.ObjectType ) ~ ", \"" ~ Function.Name ~ "\", " ~ to!string( Function.OverloadIndex ) ~ " )" ~ ", " ~ ThisType.stringof ~ " ) " ~ identifier ~ ";";
