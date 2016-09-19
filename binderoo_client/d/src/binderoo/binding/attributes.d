@@ -45,6 +45,7 @@ struct BindRawImport
 	string			strCName;
 	string			strCSignature;
 	FunctionKind	eKind;
+	bool			bOwnerIsAbstract;
 	ulong			uNameHash;
 	ulong			uSignatureHash;
 	int				iIntroducedVersion		= -1;
@@ -53,13 +54,14 @@ struct BindRawImport
 	@disable this();
 	@disable this( string name );
 
-	this( string name, string signature, FunctionKind kind, int introducedVersion = -1, int maxVersion = -1 )
+	this( string name, string signature, FunctionKind kind, bool ownerIsAbstract, int introducedVersion = -1, int maxVersion = -1 )
 	{
 		import binderoo.hash;
 
 		strCName						= name;
 		strCSignature					= signature;
 		eKind							= kind;
+		bOwnerIsAbstract				= ownerIsAbstract;
 		uNameHash						= fnv1a_64( name );
 		uSignatureHash					= fnv1a_64( signature );
 		iIntroducedVersion				= introducedVersion;
