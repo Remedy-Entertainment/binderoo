@@ -69,7 +69,7 @@ struct BoundFunction
 	enum Flags : char
 	{
 		None			= 0,
-		OwnerIsAbsract	= 0x1,
+		OwnerIsAbstract	= 0x1,
 	}
 
 	@CTypeName( "binderoo::BoundFunction::Hashes", "binderoo/boundfunction.h" )
