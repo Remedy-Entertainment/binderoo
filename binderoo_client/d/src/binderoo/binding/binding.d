@@ -209,7 +209,7 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 						BoundFunction.Flags foundFlags;
 
 						// TODO: Should automate this...
-						if( HasUDA!( Type, BindAbstract ) ) foundFlags |= BoundFunction.Flags.OwnerIsAbsract;
+						if( ImportData.bOwnerIsAbstract ) foundFlags |= BoundFunction.Flags.OwnerIsAbstract;
 
 						//pragma( msg, cast(string)ImportData.strCName ~ ", " ~ cast(string)ImportData.strCSignature );
 
@@ -226,7 +226,8 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 													, ImportData.iIntroducedVersion
 													, BoundFunction.Resolution.WaitingForImport
 													, BoundFunction.CallingConvention.CPP
-													, convert( ImportData.eKind ) );
+													, convert( ImportData.eKind )
+													, foundFlags );
 					}
 				}
 			}
@@ -413,7 +414,7 @@ public string[] generateCPPStyleBindingDeclaration( BoundFunction[] functions )
 
 	foreach( iIndex, ref boundFunction; functions )
 	{
-		if( boundFunction.eFlags ^ BoundFunction.Flags.OwnerIsAbsract )
+		if( boundFunction.eFlags ^ BoundFunction.Flags.OwnerIsAbstract )
 		{
 			string className = cast( string )boundFunction.strOwningClass;
 
