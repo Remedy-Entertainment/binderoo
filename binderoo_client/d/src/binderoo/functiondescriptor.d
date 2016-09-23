@@ -553,8 +553,9 @@ struct FunctionString( Desc ) if( IsFunctionDescriptor!( Desc )() )
 	enum string				DSignature					= TypeDescriptor.FunctionType.stringof;
 	enum string				CSignature					= generateCSignature();
 
-	enum string				ParameterNames				= generateDParameterString( false );
-	enum string				ParameterDeclarations		= generateDParameterString( true );
+	enum string				ParameterNames				= generateDParameterString( ParameterInfo.Names );
+	enum string				ParameterDeclarations		= generateDParameterString( ParameterInfo.Names | ParameterInfo.Types );
+	enum string				ParameterTypes				= generateDParameterString( ParameterInfo.Types );
 
 	private enum string		Linkage						= !Desc.IsDFunction ? "extern( " ~ Desc.Linkage ~ " ) " : "";
 
@@ -624,17 +625,27 @@ struct FunctionString( Desc ) if( IsFunctionDescriptor!( Desc )() )
 	};
 	//------------------------------------------------------------------------
 
-	private static string generateDParameterString( bool bWithTypes )
+	enum ParameterInfo
+	{
+		Names = 0x1,
+		Types = 0x2,
+	}
+
+	private static string generateDParameterString( ParameterInfo eInfo )
 	{
 		string[] parameters;
 
 		foreach( Parameter; TypeDescriptor.ParametersAsTuple )
 		{
-			if( bWithTypes )
+			if( ( eInfo & ParameterInfo.Types ) && ( eInfo & ParameterInfo.Names ) )
 			{
 				parameters ~= TypeString!( Parameter.Descriptor ).DDecl ~ " " ~ Parameter.Name;
 			}
-			else
+			else if( eInfo & ParameterInfo.Types )
+			{
+				parameters ~= TypeString!( Parameter.Descriptor ).DDecl;
+			}
+			else if( eInfo & ParameterInfo.Names )
 			{
 				parameters ~= Parameter.Name;
 			}
