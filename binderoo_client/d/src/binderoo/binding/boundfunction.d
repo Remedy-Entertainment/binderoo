@@ -70,6 +70,7 @@ struct BoundFunction
 	{
 		None			= 0,
 		OwnerIsAbstract	= 0x1,
+		Const			= 0x2,
 	}
 
 	@CTypeName( "binderoo::BoundFunction::Hashes", "binderoo/boundfunction.h" )

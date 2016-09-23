@@ -77,6 +77,7 @@ namespace binderoo
 		{
 			None			= 0,
 			OwnerIsAbstract	= 0x1,
+			Const			= 0x2,
 		};
 		//--------------------------------------------------------------------
 
