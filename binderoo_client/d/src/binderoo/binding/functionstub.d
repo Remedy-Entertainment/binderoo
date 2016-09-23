@@ -41,7 +41,10 @@ auto ParamTypes( Func, uint iIndex )() if( Func.IsMemberFunction )
 {
 	static if ( iIndex < Func.ParameterCount )
 	{
-		return ", " ~ fullyQualifiedName!( Func.Parameter!( iIndex ).Type ) ~ ParamTypes!( Func, iIndex + 1 )();
+		enum StorageType = Func.Parameter!( iIndex ).IsRef ? "ref " : "";
+		enum Joiner = ( !Func.IsStatic || iIndex > 0 ) ? ", " : "";
+
+		return Joiner ~ StorageType ~ fullyQualifiedName!( Func.Parameter!( iIndex ).Type ) ~ ParamTypes!( Func, iIndex + 1 )();
 	}
 	else
 	{
@@ -61,7 +64,14 @@ template RawMemberFunctionPointer( Func, RewriteThis = Func.ObjectType ) if( Fun
 	{
 		mixin( "import " ~ moduleName!( Func.ObjectType ) ~ ";" );	// HI I'M MISTER HACKSEEKS LOOK AT ME
 		mixin( "import " ~ moduleName!( RewriteThis ) ~ ";" );		// HI I'M MISTER HACKSEEKS LOOK AT ME
-		mixin( "static public extern( C++ ) "  ~ RefString!( Func ) ~ Func.ReturnType.stringof ~ " prototype( " ~ RewriteThis.stringof ~ "*" ~ ParamTypes!( Func, 0u )() ~ " );" );
+		static if( Func.IsStatic )
+		{
+			mixin( "static public extern( C++ ) "  ~ RefString!( Func ) ~ Func.ReturnType.stringof ~ " prototype( " ~ ParamTypes!( Func, 0u )() ~ " );" );
+		}
+		else
+		{
+			mixin( "static public extern( C++ ) "  ~ RefString!( Func ) ~ Func.ReturnType.stringof ~ " prototype( " ~ RewriteThis.stringof ~ "*" ~ ParamTypes!( Func, 0u )() ~ " );" );
+		}
 	}
 
 	alias RawMemberFunctionPointer = typeof( &Magic.prototype );
