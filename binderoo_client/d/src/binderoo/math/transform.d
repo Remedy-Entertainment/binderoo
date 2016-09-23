@@ -38,7 +38,6 @@ align( 16 )
 struct TransformFloat
 {
 
-private:
 	QuaternionFloat		m_rotation		= QuaternionFloat.identity();
 	VectorFloat			m_translation	= VectorFloat( 0.0 );
 }
