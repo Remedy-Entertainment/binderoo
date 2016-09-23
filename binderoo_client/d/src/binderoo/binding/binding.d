@@ -206,10 +206,10 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 					{
 						alias ImportData = GetUDA!( __traits( getMember, TableType, tableMember ), BindRawImport );
 
-						BoundFunction.Flags foundFlags;
+						enum AbstractFlag = ImportData.bOwnerIsAbstract ? BoundFunction.Flags.OwnerIsAbstract : BoundFunction.Flags.None;
+						enum ConstFlag = ImportData.bIsConst ? BoundFunction.Flags.Const : BoundFunction.Flags.None;
 
-						// TODO: Should automate this...
-						if( ImportData.bOwnerIsAbstract ) foundFlags |= BoundFunction.Flags.OwnerIsAbstract;
+						enum FoundFlags = cast( BoundFunction.Flags )( AbstractFlag | ConstFlag );
 
 						//pragma( msg, cast(string)ImportData.strCName ~ ", " ~ cast(string)ImportData.strCSignature );
 
@@ -227,7 +227,7 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 													, BoundFunction.Resolution.WaitingForImport
 													, BoundFunction.CallingConvention.CPP
 													, convert( ImportData.eKind )
-													, foundFlags );
+													, FoundFlags );
 					}
 				}
 			}
@@ -414,7 +414,7 @@ public string[] generateCPPStyleBindingDeclaration( BoundFunction[] functions )
 
 	foreach( iIndex, ref boundFunction; functions )
 	{
-		if( boundFunction.eFlags ^ BoundFunction.Flags.OwnerIsAbstract )
+		if( ( boundFunction.eFlags & BoundFunction.Flags.OwnerIsAbstract ) != BoundFunction.Flags.OwnerIsAbstract )
 		{
 			string className = cast( string )boundFunction.strOwningClass;
 
@@ -463,7 +463,21 @@ public string[] generateCPPStyleBindingDeclaration( BoundFunction[] functions )
 					auto strReturnType = strOriginalSig[ 0 .. foundOpenBrackets ];
 					auto foundCloseBrackets = strOriginalSig.indexOf( ')' );
 					auto strParameters = strOriginalSig[ foundOpenBrackets .. foundCloseBrackets + 1 ];
-					auto strTypeCast = "( " ~ strReturnType ~ "(" ~ strClass ~ "::*)" ~ strParameters ~ " )";
+
+					string strTypeCast;
+					if( func.eFunctionKind == BoundFunction.FunctionKind.Static )
+					{
+						strTypeCast = "( " ~ strReturnType ~ "(*)" ~ strParameters ~ " )";
+					}
+					else
+					{
+						strTypeCast = "( " ~ strReturnType ~ "(" ~ strClass ~ "::*)" ~ strParameters;
+						if( func.eFlags & BoundFunction.Flags.Const )
+						{
+							strTypeCast ~= " const";
+						}
+						strTypeCast ~= " )";
+					}
 
 					definitionLines ~= "\tbinderoo::ExportedMethod( \"" ~ cast( string )func.strFunctionName ~ "\", \"" ~ cast( string )func.strFunctionSignature ~ "\", " ~ strTypeCast ~ "&" ~ cast(string)func.strFunctionName ~ " ),";
 				}
