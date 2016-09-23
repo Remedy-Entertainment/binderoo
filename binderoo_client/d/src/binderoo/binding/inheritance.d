@@ -140,7 +140,9 @@ mixin template GenerateImports( ThisType )
 						{
 							alias FunctionDetails = Function.GetUDA!( BindVirtual );
 
-							string UDAs = "@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( ThisType, false ).CDecl ~ "::" ~ Function.Name ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", BindRawImport.FunctionKind.Virtual, " ~ OwnerIsAbstract ~ ", " ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
+							string strIsConst = Function.IsConst ? "true" : "false";
+
+							string UDAs = "@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( ThisType, false ).CDecl ~ "::" ~ Function.Name ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", BindRawImport.FunctionKind.Virtual, " ~ strIsConst ~ ", " ~ OwnerIsAbstract ~ ", " ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
 							string identifier = "function" ~ to!string( iIndex++ );
 
 							identifiers ~= identifier;
@@ -253,9 +255,12 @@ mixin template GenerateImports( ThisType )
 						{
 							alias FunctionDetails = Function.GetUDA!( BindMethod );
 
-							string UDAs = "@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( ThisType, false ).CDecl ~ "::" ~ Function.Name ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", BindRawImport.FunctionKind.Method, " ~ OwnerIsAbstract ~ ", "  ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
-							string identifier = "function" ~ to!string( iIndex++ );
+							enum IsConst = Function.IsConst ? "true" : "false";
+							enum FunctionKind = Function.IsStatic ? "BindRawImport.FunctionKind.Static" : "BindRawImport.FunctionKind.Method";
 
+							string identifier = "function" ~ to!string( iIndex++ );
+							
+							string UDAs = "@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( ThisType, false ).CDecl ~ "::" ~ Function.Name ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", " ~ FunctionKind ~ ", " ~ IsConst ~ ", " ~ OwnerIsAbstract ~ ", "  ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
 							pointers ~= UDAs ~ "\nRawMemberFunctionPointer!( FunctionDescriptor!(" ~ fullyQualifiedName!( Function.ObjectType ) ~ ", \"" ~ Function.Name ~ "\", " ~ to!string( Function.OverloadIndex ) ~ " )" ~ ", " ~ ThisType.stringof ~ " ) " ~ identifier ~ ";";
 						}
 					}
@@ -294,30 +299,43 @@ mixin template GenerateImports( ThisType )
 						{
 							static if( !Function.HasUDA!( BindDisallow ) )
 							{
-								string[] parameterNames = [  "thisObj" ];
+								string[] parameterNames;
+								
+								static if( !Function.IsStatic )
+								{
+									parameterNames ~= "thisObj";
+								}
 								static if( FunctionString!( Function ).ParameterNames.length > 0 )
 								{
 									parameterNames ~= FunctionString!( Function ).ParameterNames;
 								}
-								functionCalls ~= "pragma( inline ) " ~ FunctionString!( Function ).DDeclNoLinkage ~ " { " ~ ThisType.stringof ~ "* thisObj = cast(" ~ ThisType.stringof ~ "*)&this; return __methodtableData.function" ~ to!string( iIndex ) ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }";
 
-								static if( Function.HasUDA!( BindGetter ) )
+								static if( Function.IsStatic )
 								{
-									static assert( Function.ParameterCount == 0, "Getter function " ~ Function.Name ~ " has parameters! It cannot be marked as a getter property." );
-									static assert( Function.HasReturnType, "Getter function " ~ Function.Name ~ " does not return anything!" );
-
-									enum PropertyName = Function.GetUDA!( BindGetter ).strPropertyName;
-
-									functionCalls ~= "pragma( inline ) @property " ~ PropertyName ~ "() { auto thisObj = &this; return __methodtableData.function" ~ to!string( iIndex ) ~ "( thisObj ); }";
+									functionCalls ~= "pragma( inline ) static " ~ FunctionString!( Function ).DDeclNoLinkage ~ " { return __methodtableData.function" ~ to!string( iIndex ) ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }";
 								}
-
-								static if( Function.HasUDA!( BindSetter ) )
+								else
 								{
-									static assert( Function.ParameterCount == 1, "Setter function " ~ Function.Name ~ " has extra parameters! It cannot be marked as a getter property." );
+									functionCalls ~= "pragma( inline ) " ~ FunctionString!( Function ).DDeclNoLinkage ~ " { " ~ ThisType.stringof ~ "* thisObj = cast(" ~ ThisType.stringof ~ "*)&this; return __methodtableData.function" ~ to!string( iIndex ) ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }";
 
-									enum PropertyName = Function.GetUDA!( BindSetter ).strPropertyName;
+									static if( Function.HasUDA!( BindGetter ) )
+									{
+										static assert( Function.ParameterCount == 0, "Getter function " ~ Function.Name ~ " has parameters! It cannot be marked as a getter property." );
+										static assert( Function.HasReturnType, "Getter function " ~ Function.Name ~ " does not return anything!" );
 
-									functionCalls ~= "pragma( inline ) @property " ~ PropertyName ~ "( " ~ Function.Parameter!( 0 ).Type.stringof ~ " val ) { auto thisObj = &this; __methodtableData.function" ~ to!string( iIndex ) ~ "( thisObj, val ); return val; }";
+										enum PropertyName = Function.GetUDA!( BindGetter ).strPropertyName;
+
+										functionCalls ~= "pragma( inline ) @property " ~ PropertyName ~ "() { auto thisObj = &this; return __methodtableData.function" ~ to!string( iIndex ) ~ "( thisObj ); }";
+									}
+
+									static if( Function.HasUDA!( BindSetter ) )
+									{
+										static assert( Function.ParameterCount == 1, "Setter function " ~ Function.Name ~ " has extra parameters! It cannot be marked as a getter property." );
+
+										enum PropertyName = Function.GetUDA!( BindSetter ).strPropertyName;
+
+										functionCalls ~= "pragma( inline ) @property " ~ PropertyName ~ "( " ~ Function.Parameter!( 0 ).Type.stringof ~ " val ) { auto thisObj = &this; __methodtableData.function" ~ to!string( iIndex ) ~ "( thisObj, val ); return val; }";
+									}
 								}
 							}
 							++iIndex;
@@ -350,13 +368,22 @@ mixin template CPPStructInherits( T, NewMethods = void )
 	version( InheritanceInspectionDebug ) pragma( msg, "Inheritance: Struct " ~ typeof( this ).stringof );
 	version( InheritanceInspectionDebug ) pragma( msg, GenerateBaseAccessors!( T ) );
 
-	static if( __traits( hasMember, T, "__vtableData" ) )
+	mixin( GenerateBaseAccessors!( T ) );
+
+	mixin GenerateImports!( typeof( this ) );
+
+	static if( T.VTable.FunctionCount > 0 )
 	{
 		//pragma( msg, typeof(this).stringof ~ " will call base constructor " ~ T.stringof ~ " with a vtable" );
 		@InheritanceBase T			base = T( &__vtableData );
 	}
 	else
 	{
+		static if( VTable.FunctionCount > 0 )
+		{
+			// This is meant to be a void** to be 100% correct. But the compiler won't let me.
+			void*						__vtable = &__vtableData;
+		}
 		// TODO: Nicer method of non-virtual bases
 		@InheritanceBase T			base;
 	}
@@ -365,24 +392,30 @@ mixin template CPPStructInherits( T, NewMethods = void )
 	alias MethodDescriptor			= NewMethods;
 	//------------------------------------------------------------------------
 
-	mixin( GenerateBaseAccessors!( T ) );
-
-	mixin GenerateImports!( typeof( this ) );
-
-	import binderoo.traits : HasUDA, GetUDA;
-	this( VTableType )( VTableType* newVTable ) if( HasUDA!( VTableType, InheritanceGeneratedVTable ) )
+	static if( VTable.FunctionCount > 0 )
 	{
-		base = T( newVTable );
+		import binderoo.traits : HasUDA, GetUDA;
+		this( VTableType )( VTableType* newVTable ) if( HasUDA!( VTableType, InheritanceGeneratedVTable ) )
+		{
+			static if( T.VTable.FunctionCount > 0 )
+			{
+				base = T( newVTable );
+			}
+			else
+			{
+				__vtable = newVTable;
+			}
+		}
 	}
 	//------------------------------------------------------------------------
 }
 //----------------------------------------------------------------------------
 
-mixin template CPPStructVirtualBase( NewMethods = void, AlsoInherits = void )
+mixin template CPPStructBase( NewMethods = void, AlsoInherits = void )
 {
 	static if( !is( AlsoInherits == void ) )
 	{
-		mixin CPPStructInherits!( AlsoInherits, NewVirtuals, NewMethods );
+		mixin CPPStructInherits!( AlsoInherits, NewMethods );
 	}
 	else
 	{
@@ -391,13 +424,16 @@ mixin template CPPStructVirtualBase( NewMethods = void, AlsoInherits = void )
 		mixin GenerateImports!( typeof( this ) );
 	}
 
-	// This is meant to be a void** to be 100% correct. But the compiler won't let me.
-	void*						__vtable = &__vtableData;
-
-	import binderoo.traits : HasUDA, GetUDA;
-	this( VTableType )( VTableType* newVTable ) if( HasUDA!( VTableType, InheritanceGeneratedVTable ) )
+	static if( VTable.FunctionCount > 0 )
 	{
-		__vtable = newVTable;
+		// This is meant to be a void** to be 100% correct. But the compiler won't let me.
+		void*						__vtable = &__vtableData;
+
+		import binderoo.traits : HasUDA, GetUDA;
+		this( VTableType )( VTableType* newVTable ) if( HasUDA!( VTableType, InheritanceGeneratedVTable ) )
+		{
+			__vtable = newVTable;
+		}
 	}
 }
 //----------------------------------------------------------------------------
