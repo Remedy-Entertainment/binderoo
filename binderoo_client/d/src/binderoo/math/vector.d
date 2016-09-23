@@ -322,33 +322,33 @@ struct VectorFloat
 	pragma( inline ) VectorFloat merge( Merge e1, Merge e2, Merge e3, Merge e4 )( const VectorFloat vec ) const
 	{
 		// Actually trying to select an entire side.
-		static if( ( e1 & Merge.LeftMask ) && ( e2 & Merge.LeftMask ) && ( e3 & Merge.LeftMask ) && ( e4 && Merge.LeftMask ) )
+		static if( ( e1 & Merge.LeftMask ) && ( e2 & Merge.LeftMask ) && ( e3 & Merge.LeftMask ) && ( e4 & Merge.LeftMask ) )
 		{
 			enum Mask = GenerateShuffle!( e1, e2, e3, e4 )();
 			return VectorFloat( __simd( XMM.SHUFPS, m_data, m_data, Mask ) );
 		}
-		else static if( ( e1 & Merge.RightMask ) && ( e2 & Merge.RightMask ) && ( e3 & Merge.RightMask ) && ( e4 && Merge.RightMask ) )
+		else static if( ( e1 & Merge.RightMask ) && ( e2 & Merge.RightMask ) && ( e3 & Merge.RightMask ) && ( e4 & Merge.RightMask ) )
 		{
 			enum Mask = GenerateShuffle!( e1, e2, e3, e4 )();
 			return VectorFloat( __simd( XMM.SHUFPS, vec.m_data, vec.m_data, Mask ) );
 		}
 
 		// Mix one element in
-		else static if( ( e1 & Merge.LeftMask ) && ( e2 & Merge.LeftMask ) && ( e3 & Merge.LeftMask ) && ( e4 && Merge.RightMask ) )
+		else static if( ( e1 & Merge.LeftMask ) && ( e2 & Merge.LeftMask ) && ( e3 & Merge.LeftMask ) && ( e4 & Merge.RightMask ) )
 		{
 			enum IntermediaryMask1	= GenerateShuffle!( e3, e3, e4, e4 )();
-			enum IntermediaryMask2	= GenerateShuffle!( Mask.ElemX, Mask.ElemZ, Mask.ElemX, Mask.ElemZ )();
-			enum FinalMask			= GenerateShuffle!( e1, e2, Mask.ElemZ, Mask.ElemW )();
+			enum IntermediaryMask2	= GenerateShuffle!( Merge.ElemX, Merge.ElemZ, Merge.ElemX, Merge.ElemZ )();
+			enum FinalMask			= GenerateShuffle!( e1, e2, Merge.ElemZ, Merge.ElemW )();
 
 			float4 intermediary1	= __simd( XMM.SHUFPS, m_data, vec.m_data, IntermediaryMask1 );
 			float4 intermediary2	= __simd( XMM.SHUFPS, intermediary1, intermediary1, IntermediaryMask2 );
-			return VectorFloat( __simd( XMM.SHUFPS, intermediary2, vec.m_data, FinalMask ) );
+			return VectorFloat( __simd( XMM.SHUFPS, m_data, intermediary2, FinalMask ) );
 		}
-		else static if( ( e1 & Merge.LeftMask ) && ( e2 & Merge.RightMask ) && ( e3 & Merge.RightMask ) && ( e4 && Merge.RightMask ) )
+		else static if( ( e1 & Merge.LeftMask ) && ( e2 & Merge.RightMask ) && ( e3 & Merge.RightMask ) && ( e4 & Merge.RightMask ) )
 		{
 			enum IntermediaryMask1	= GenerateShuffle!( e1, e1, e2, e2 )();
-			enum IntermediaryMask2	= GenerateShuffle!( Mask.ElemX, Mask.ElemZ, Mask.ElemX, Mask.ElemZ )();
-			enum FinalMask			= GenerateShuffle!( Mask.ElemZ, Mask.ElemW, e3, e4 )();
+			enum IntermediaryMask2	= GenerateShuffle!( Merge.ElemX, Merge.ElemZ, Merge.ElemX, Merge.ElemZ )();
+			enum FinalMask			= GenerateShuffle!( Merge.ElemZ, Merge.ElemW, e3, e4 )();
 
 			float4 intermediary1	= __simd( XMM.SHUFPS, m_data, vec.m_data, IntermediaryMask1 );
 			float4 intermediary2	= __simd( XMM.SHUFPS, intermediary1, intermediary1, IntermediaryMask2 );
@@ -356,12 +356,12 @@ struct VectorFloat
 		}
 
 		// Even mix
-		else static if( ( e1 & Merge.LeftMask ) && ( e2 & Merge.LeftMask ) && ( e3 & Merge.RightMask ) && ( e4 && Merge.RightMask ) )
+		else static if( ( e1 & Merge.LeftMask ) && ( e2 & Merge.LeftMask ) && ( e3 & Merge.RightMask ) && ( e4 & Merge.RightMask ) )
 		{
 			enum Mask = GenerateShuffle!( e1, e2, e3, e4 )();
 			return VectorFloat( __simd( XMM.SHUFPS, m_data, vec.m_data, Mask ) );
 		}
-		else static if( ( e1 & Merge.RightMask ) && ( e2 & Merge.RightMask ) && ( e3 & Merge.LeftMask ) && ( e4 && Merge.LeftMask ) )
+		else static if( ( e1 & Merge.RightMask ) && ( e2 & Merge.RightMask ) && ( e3 & Merge.LeftMask ) && ( e4 & Merge.LeftMask ) )
 		{
 			enum Mask = GenerateShuffle!( e1, e2, e3, e4 )();
 			return VectorFloat( __simd( XMM.SHUFPS, vec.m_data, m_data, Mask ) );
