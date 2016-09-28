@@ -88,6 +88,8 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>../../src/; ../../interface/; ../../../../binderoo_common/cpp/interface;</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>BINDEROO_EXPORT;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -110,6 +112,8 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>../../src/; ../../interface/; ../../../../binderoo_common/cpp/interface;</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>BINDEROO_EXPORT;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -117,6 +121,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\allocator.h" />
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\defs.h" />
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\functiontraits.h" />
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\hash.h" />
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\slice.h" />
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\fastdelegate\fastdelegate.h" />
+    <ClInclude Include="..\..\interface\binderoo\monitoredfolder.h" />
+    <ClInclude Include="..\..\interface\service.h" />
+    <ClInclude Include="..\..\src\filewatcher.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\filewatcher_win32.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\functiontraits_vs2012.inl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

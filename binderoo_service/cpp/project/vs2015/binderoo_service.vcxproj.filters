@@ -11,5 +11,50 @@
     <Filter Include="src">
       <UniqueIdentifier>{c4424d31-e80e-4df8-991c-24a3120a712a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="interface\binderoo">
+      <UniqueIdentifier>{67815aa0-2ce9-4964-beb1-cf8ce1967378}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="interface\fastdelegate">
+      <UniqueIdentifier>{28ca182e-7dfe-4873-bb64-4d567fa9f492}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\filewatcher.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\allocator.h">
+      <Filter>interface\binderoo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\defs.h">
+      <Filter>interface\binderoo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\hash.h">
+      <Filter>interface\binderoo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\interface\service.h">
+      <Filter>interface\binderoo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\slice.h">
+      <Filter>interface\binderoo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\functiontraits.h">
+      <Filter>interface\binderoo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\fastdelegate\fastdelegate.h">
+      <Filter>interface\fastdelegate</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\interface\binderoo\monitoredfolder.h">
+      <Filter>interface\binderoo</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\filewatcher_win32.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\functiontraits_vs2012.inl">
+      <Filter>interface\binderoo</Filter>
+    </None>
   </ItemGroup>
 </Project>
