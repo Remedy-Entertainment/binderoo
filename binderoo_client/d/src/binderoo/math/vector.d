@@ -88,13 +88,13 @@ struct VectorFloat
 
 	this( float x, float y, float z, float w = 0.0f )
 	{
-		m_data.array = [ x, y, z, w ];
+		m_data.ptr[ 0 .. 4 ] = cast( float[ 4 ] )[ x, y, z, w ];
 	}
 	//------------------------------------------------------------------------
 
 	this( float val )
 	{
-		m_data.array = [ val, val, val, val ];
+		m_data.ptr[ 0 .. 4 ] = val;
 	}
 	//------------------------------------------------------------------------
 
