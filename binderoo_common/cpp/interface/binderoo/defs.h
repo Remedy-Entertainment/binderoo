@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //----------------------------------------------------------------------------
 
 #include <cstdint>
+#include "fastdelegate/fastdelegate.h"
 
 #if defined( BINDEROO_EXPORT )
 	#define BIND_DLL			__declspec( dllexport )
