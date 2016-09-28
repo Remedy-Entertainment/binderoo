@@ -33,9 +33,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _BINDEROO_IMPORTS_H_
 //----------------------------------------------------------------------------
 
-#include "defs.h"
-#include "host.h"
-#include "functiontraits.h"
+#include "binderoo/defs.h"
+#include "binderoo/host.h"
+#include "binderoo/functiontraits.h"
 //----------------------------------------------------------------------------
 
 namespace binderoo

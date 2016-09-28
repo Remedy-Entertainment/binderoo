@@ -33,12 +33,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _BINDEROO_HOST_H_
 //----------------------------------------------------------------------------
 
-#include "defs.h"
-#include "slice.h"
-#include "allocator.h"
+#include "binderoo/defs.h"
+#include "binderoo/slice.h"
+#include "binderoo/allocator.h"
 
-#include "boundfunction.h"
-#include "boundobject.h"
+#include "binderoo/boundfunction.h"
+#include "binderoo/boundobject.h"
 //----------------------------------------------------------------------------
 
 namespace binderoo

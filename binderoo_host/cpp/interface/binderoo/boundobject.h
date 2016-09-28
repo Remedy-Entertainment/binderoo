@@ -33,8 +33,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _BINDEROO_BOUNDOBJECT_H_
 //----------------------------------------------------------------------------
 
-#include "defs.h"
-#include "slice.h"
+#include "binderoo/defs.h"
+#include "binderoo/slice.h"
 //----------------------------------------------------------------------------
 
 namespace binderoo

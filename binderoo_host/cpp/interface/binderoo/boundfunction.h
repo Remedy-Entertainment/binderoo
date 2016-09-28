@@ -32,8 +32,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined( _BINDEROO_BOUNDFUNCTION_H_ )
 #define _BINDEROO_BOUNDFUNCTION_H_
 
-#include "defs.h"
-#include "slice.h"
+#include "binderoo/defs.h"
+#include "binderoo/slice.h"
 //----------------------------------------------------------------------------
 
 namespace binderoo

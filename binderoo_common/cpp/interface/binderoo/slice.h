@@ -33,7 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _BINDEROO_SLICE_H_
 //----------------------------------------------------------------------------
 
-#include "defs.h"
+#include "binderoo/defs.h"
 //----------------------------------------------------------------------------
 
 /*#if defined( _MSC_VER )

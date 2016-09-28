@@ -33,7 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _BINDEROO_ALLOCATOR_H_
 //----------------------------------------------------------------------------
 
-#include "defs.h"
+#include "binderoo/defs.h"
 //----------------------------------------------------------------------------
 
 namespace binderoo

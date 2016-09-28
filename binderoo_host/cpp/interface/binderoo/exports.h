@@ -55,9 +55,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //----------------------------------------------------------------------------
 
-#include "defs.h"
-#include "functiontraits.h"
-#include "slice.h"
+#include "binderoo/defs.h"
+#include "binderoo/functiontraits.h"
+#include "binderoo/slice.h"
 //----------------------------------------------------------------------------
 
 namespace binderoo

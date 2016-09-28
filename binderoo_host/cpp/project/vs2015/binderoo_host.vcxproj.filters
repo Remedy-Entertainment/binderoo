@@ -13,6 +13,9 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
+    <Filter Include="interface\binderoo">
+      <UniqueIdentifier>{b3b412ca-a255-414c-8aef-e1b8a56aa949}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\binderoo\exports.cpp">
@@ -23,40 +26,40 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\allocator.h">
+      <Filter>interface\binderoo</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\interface\binderoo\boundfunction.h">
-      <Filter>interface</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\interface\binderoo\slice.h">
-      <Filter>interface</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\interface\binderoo\defs.h">
-      <Filter>interface</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\interface\binderoo\exports.h">
-      <Filter>interface</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\interface\binderoo\functiontraits.h">
-      <Filter>interface</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\interface\binderoo\hash.h">
-      <Filter>interface</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\interface\binderoo\host.h">
-      <Filter>interface</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\interface\binderoo\allocator.h">
-      <Filter>interface</Filter>
+      <Filter>interface\binderoo</Filter>
     </ClInclude>
     <ClInclude Include="..\..\interface\binderoo\boundobject.h">
-      <Filter>interface</Filter>
+      <Filter>interface\binderoo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\defs.h">
+      <Filter>interface\binderoo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\interface\binderoo\exports.h">
+      <Filter>interface\binderoo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\hash.h">
+      <Filter>interface\binderoo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\interface\binderoo\host.h">
+      <Filter>interface\binderoo</Filter>
     </ClInclude>
     <ClInclude Include="..\..\interface\binderoo\imports.h">
-      <Filter>interface</Filter>
+      <Filter>interface\binderoo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\slice.h">
+      <Filter>interface\binderoo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\functiontraits.h">
+      <Filter>interface\binderoo</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\interface\binderoo\functiontraits_vs2012.inl">
-      <Filter>interface</Filter>
+    <None Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\functiontraits_vs2012.inl">
+      <Filter>interface\binderoo</Filter>
     </None>
   </ItemGroup>
 </Project>

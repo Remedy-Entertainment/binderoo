@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdint>
 
-#if defined( BINDEROO_HOST )
+#if defined( BINDEROO_EXPORT )
 	#define BIND_DLL			__declspec( dllexport )
 #else
 	#define BIND_DLL			__declspec( dllimport )

@@ -76,8 +76,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //----------------------------------------------------------------------------
 
-#include "defs.h"
-#include "functionTraits_vs2012.inl"
+#include "binderoo/defs.h"
+#include "binderoo/functionTraits_vs2012.inl"
 //----------------------------------------------------------------------------
 
 #define BIND_FUNCTION_TRAITS_OF( func ) binderoo::FunctionTraits< decltype( &func ) >
