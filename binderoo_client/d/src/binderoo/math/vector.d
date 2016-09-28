@@ -301,6 +301,30 @@ struct VectorFloat
 	pragma( inline ) VectorFloat distanceSquared3( const VectorFloat vec ) const	{ return ( vec - this ).magSquared3(); }
 	//------------------------------------------------------------------------
 
+	// Four dimensional vector operations
+	//------------------------------------------------------------------------
+
+	pragma( inline ) VectorFloat magnitude4() const
+	{
+		float4 vMagSq4 = __simd( XMM.DPPS, m_data, m_data, 0xFF );
+		return VectorFloat( __simd( XMM.SQRTPS, vMagSq4 ) );
+	}
+	//------------------------------------------------------------------------
+
+	pragma( inline ) VectorFloat magSquared4() const
+	{
+		return VectorFloat( __simd( XMM.DPPS, m_data, m_data, 0xFF ) );
+	}
+	//------------------------------------------------------------------------
+
+	pragma( inline ) VectorFloat normalize4() const
+	{
+		// TODO: bring in optimised version
+		VectorFloat vMag = magnitude4();
+		return this / vMag;
+	}
+	//------------------------------------------------------------------------
+
 	// Shuffling. Rather than a "traidtional" shuffle, shuffling is achieved
 	// through swizzling here. You are expected to swizzle all four components
 	// currently.

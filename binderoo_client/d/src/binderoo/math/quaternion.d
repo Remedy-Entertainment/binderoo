@@ -163,6 +163,12 @@ struct QuaternionFloat
 	}
 	//------------------------------------------------------------------------
 
+	pragma( inline ) QuaternionFloat normalize() const
+	{
+		return QuaternionFloat( m_data.normalize4() );
+	}
+	//------------------------------------------------------------------------
+
 	final this( string s )			{ m_data = VectorFloat( s ); }
 	final string toString()			{ return m_data.toString(); }
 	//------------------------------------------------------------------------
