@@ -59,6 +59,7 @@ namespace binderoo
 	{
 	public:
 		FileWatcher( Slice< MonitoredFolder >& folders );
+		~FileWatcher();
 
 		bool detectFileChanges();
 		BIND_INLINE const ChangedFilesVector& getChangedFiles() const			{ return vecCurrentChangedFiles; }
@@ -67,7 +68,7 @@ namespace binderoo
 	private:
 		Slice< MonitoredFolder >				monitoredFolders;
 		VoidPointerVector						vecFileWatchersHandles;
-		VoidPointerVector						vecFileWatchersDirectories;
+		VoidPointerVector						vecFileNotificationsHandles;
 
 		ChangedFilesVector						vecCurrentChangedFiles;
 	};

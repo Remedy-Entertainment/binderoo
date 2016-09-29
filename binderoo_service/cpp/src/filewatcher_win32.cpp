@@ -36,46 +36,90 @@ binderoo::FileWatcher::FileWatcher( binderoo::Slice< binderoo::MonitoredFolder >
 {
 	monitoredFolders = folders;
 	vecFileWatchersHandles.reserve( folders.length() );
-	vecFileWatchersDirectories.reserve( folders.length() );
+	vecFileNotificationsHandles.reserve( folders.length() );
 
 	for( auto& folder : monitoredFolders )
 	{
 		InternalString searchPath = "\\\\?\\";
 		searchPath += InternalString( folder.strSourceFolder.data(), folder.strSourceFolder.length() );
 
-		HANDLE findHandle = FindFirstChangeNotification( searchPath.c_str(), TRUE, FILE_NOTIFY_CHANGE_LAST_WRITE );
-		vecFileWatchersHandles.push_back( findHandle );
+		HANDLE hFolder = CreateFile( searchPath.c_str(), FILE_LIST_DIRECTORY, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
+		vecFileWatchersHandles.push_back( hFolder );
 
+		HANDLE hNotifier = FindFirstChangeNotification( searchPath.c_str(), TRUE, FILE_NOTIFY_CHANGE_LAST_WRITE );
+		vecFileNotificationsHandles.push_back( hFolder );
 
+	}
+}
+//----------------------------------------------------------------------------
+
+binderoo::FileWatcher::~FileWatcher()
+{
+	for( auto& hNotifier : vecFileNotificationsHandles )
+	{
+		FindCloseChangeNotification( hNotifier );
+	}
+
+	for( auto& hFolder : vecFileWatchersHandles )
+	{
+		CloseHandle( hFolder );
 	}
 }
 //----------------------------------------------------------------------------
 
 bool binderoo::FileWatcher::detectFileChanges()
 {
+	const DWORD dBufferLength = 65536;
+	char buffer[ dBufferLength ];
+
 	vecCurrentChangedFiles.clear();
 
 	const DWORD dOriginalWait = 10;
 	const DWORD dAdditionalWait = 100;
 
-	DWORD dWaitStatus = WaitForMultipleObjects( vecFileWatchersHandles.size(), vecFileWatchersHandles.data(), FALSE, dOriginalWait );
+	DWORD dWaitStatus = WaitForMultipleObjects( (DWORD)vecFileNotificationsHandles.size(), vecFileNotificationsHandles.data(), FALSE, dOriginalWait );
 
-	while( dWaitStatus > WAIT_OBJECT_0 && dWaitStatus < WAIT_OBJECT_0 + vecFileWatchersHandles.size() )
+	while( dWaitStatus > WAIT_OBJECT_0 && dWaitStatus < WAIT_OBJECT_0 + vecFileNotificationsHandles.size() )
 	{
 		DWORD dCurrentFolder = dWaitStatus - WAIT_OBJECT_0;
 		MonitoredFolder& currFolder = monitoredFolders[ dCurrentFolder ];
 
-		vecCurrentChangedFiles.push_back( ChangedFiles() );
-		ChangedFiles& changedFile = vecCurrentChangedFiles.back();
+		DWORD dBytesRead = 0;
+		BOOL bRead = ReadDirectoryChangesW( vecFileWatchersHandles[ dCurrentFolder ], buffer, dBufferLength, TRUE, FILE_NOTIFY_CHANGE_LAST_WRITE, &dBytesRead, NULL, NULL );
 
-		changedFile.pThisFolder = &currFolder;
+		while( bRead != FALSE )
+		{
+			char* pCurrBuffer = buffer;
+			while( pCurrBuffer != nullptr )
+			{
+				FILE_NOTIFY_INFORMATION* pInformation = (FILE_NOTIFY_INFORMATION*)pCurrBuffer;
+				int strLength = WideCharToMultiByte( CP_ACP, MB_PRECOMPOSED, pInformation->FileName, pInformation->FileNameLength / sizeof( WCHAR ), NULL, 0, NULL, NULL );
 
+				vecCurrentChangedFiles.push_back( ChangedFiles() );
+				ChangedFiles& changedFile = vecCurrentChangedFiles.back();
+				changedFile.pThisFolder = &currFolder;
+				changedFile.strChangedFile.reserve( strLength );
+				WideCharToMultiByte( CP_ACP, MB_PRECOMPOSED, pInformation->FileName, pInformation->FileNameLength / sizeof( WCHAR ), (LPSTR)changedFile.strChangedFile.data(), strLength, NULL, NULL );
 
+				if( pInformation->NextEntryOffset > 0 )
+				{
+					pCurrBuffer += pInformation->NextEntryOffset;
+				}
+				else
+				{
+					pCurrBuffer = 0;
+				}
+			}
 
-		FindNextChangeNotification( vecFileWatchersHandles[ dCurrentFolder ] );
-		dWaitStatus = WaitForMultipleObjects( vecFileWatchersHandles.size(), vecFileWatchersHandles.data(), FALSE, dAdditionalWait );
+			bRead = ReadDirectoryChangesW( vecFileWatchersHandles[ dCurrentFolder ], buffer, dBufferLength, TRUE, FILE_NOTIFY_CHANGE_LAST_WRITE, &dBytesRead, NULL, NULL );
+		}
+
+		FindNextChangeNotification( vecFileNotificationsHandles[ dCurrentFolder ] );
+		dWaitStatus = WaitForMultipleObjects( (DWORD)vecFileNotificationsHandles.size(), vecFileNotificationsHandles.data(), FALSE, dAdditionalWait );
 	}
 
 	return !vecCurrentChangedFiles.empty();
 }
+//----------------------------------------------------------------------------
+
 //============================================================================

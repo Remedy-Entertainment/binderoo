@@ -57,9 +57,11 @@ namespace binderoo
 		DString								strOutputFolder;
 	};
 
-	typedef fastdelegate::FastDelegate0< int32_t >	ThreadRunFunction;
+	typedef fastdelegate::FastDelegate0< void > ThreadOSUpdateFunction;
+	typedef fastdelegate::FastDelegate1< ThreadOSUpdateFunction, int32_t >	ThreadRunFunction;
 
 	typedef void*(* ThreadCreateFunction )( ThreadRunFunction );
+	typedef void(* ThreadSleepFunction )( size_t );
 	typedef void(* ThreadDestroyFunction )( void* );
 
 	struct ServiceConfiguration
@@ -78,6 +80,7 @@ namespace binderoo
 		UnalignedDeallocatorFunc			unaligned_free;
 
 		ThreadCreateFunction				create_thread;
+		ThreadSleepFunction					sleep_thread;
 		ThreadDestroyFunction				destroy_thread;
 	};
 
