@@ -47,8 +47,35 @@ namespace binderoo
 	typedef void	( BIND_C_CALL *UnalignedDeallocatorFunc )	( void* pObj );
 	//------------------------------------------------------------------------
 
-	template< typename _ty, size_t _alignval = 16 >
-	class BIND_DLL Allocator
+	enum class AllocatorSpace
+	{
+		Host,
+		Service
+	};
+
+	template< AllocatorSpace eSpace >
+	class BIND_DLL AllocatorFunctions
+	{
+	public:
+		static void setup( AllocatorFunc a, DeallocatorFunc d, CAllocatorFunc c, ReallocatorFunc r )
+		{
+			alloc		= a;
+			free		= d;
+			calloc		= c;
+			realloc		= r;
+		}
+		//--------------------------------------------------------------------
+
+	protected:
+		static AllocatorFunc			alloc;
+		static DeallocatorFunc			free;
+		static CAllocatorFunc			calloc;
+		static ReallocatorFunc			realloc;
+	};
+	//------------------------------------------------------------------------
+
+	template< AllocatorSpace eSpace, typename _ty, size_t _alignval = 16 >
+	class BIND_DLL Allocator : public AllocatorFunctions< eSpace >
 	{
 	public:
 
@@ -76,48 +103,23 @@ namespace binderoo
 		template< typename _newty >
 		struct rebind
 		{
-			typedef Allocator< typename _newty, alignment > other;
+			typedef Allocator< eSpace, typename _newty, alignment > other;
 		};
 		//--------------------------------------------------------------------
 
-		BIND_INLINE						Allocator()
-			: alloc( nullptr )
-			, free( nullptr )
-			, calloc( nullptr )
-			, realloc( nullptr )													{ }
-		//--------------------------------------------------------------------
-
-		BIND_INLINE						Allocator( AllocatorFunc a, DeallocatorFunc d, CAllocatorFunc c, ReallocatorFunc r )
-			: alloc( a )
-			, free( d )
-			, calloc( c )
-			, realloc( r )															{ }
-		//--------------------------------------------------------------------
-
-		BIND_INLINE						Allocator( const Allocator& other )
-			: alloc( other.alloc )
-			, free( other.free )
-			, calloc( other.calloc )
-			, realloc( other.realloc )												{ }
-		//--------------------------------------------------------------------
-
-		template< typename U, size_t A > 
-		BIND_INLINE						Allocator( const Allocator< typename U, A >& other )
-			: alloc( other.alloc )
-			, free( other.free )
-			, calloc( other.calloc )
-			, realloc( other.realloc )												{ }
-		//--------------------------------------------------------------------
-
+		BIND_INLINE						Allocator()									{ }
+		BIND_INLINE						Allocator( const Allocator& other )			{ }
+		template< AllocatorSpace Space, typename U, size_t A > 
+		BIND_INLINE						Allocator( const Allocator< Space, typename U, A >& other )	{ }
 		BIND_INLINE						~Allocator()								{ }
 		//--------------------------------------------------------------------
 
-		template< typename U, size_t S >
-		BIND_INLINE bool				operator==( const Allocator< U, S >& rhs ) const	{ return true; }
+		template< AllocatorSpace Space, typename U, size_t A > 
+		BIND_INLINE bool				operator==( const Allocator< Space, U, A >& rhs ) const	{ return true; }
 		//--------------------------------------------------------------------
 
-		template< typename U, size_t S >
-		BIND_INLINE bool				operator==( Allocator< U, S >& rhs )				{ return true; }
+		template< AllocatorSpace Space, typename U, size_t A > 
+		BIND_INLINE bool				operator==( Allocator< Space, U, A >& rhs )				{ return true; }
 		//--------------------------------------------------------------------
 
 		BIND_INLINE pointer				address( reference x ) const				{ return &x; }
@@ -130,7 +132,7 @@ namespace binderoo
 		}
 		//--------------------------------------------------------------------
 
-		BIND_INLINE pointer				allocate( size_type count, Allocator< void >::const_pointer hint )
+		BIND_INLINE pointer				allocate( size_type count, typename Allocator< eSpace, void, alignment >::const_pointer hint )
 		{
 			return allocate( count );
 		}
@@ -170,16 +172,11 @@ namespace binderoo
 			pPointer->~U();
 		}
 		//--------------------------------------------------------------------
-
-		AllocatorFunc					alloc;
-		DeallocatorFunc					free;
-		CAllocatorFunc					calloc;
-		ReallocatorFunc					realloc;
 	};
 	//------------------------------------------------------------------------
 
-	template< size_t _alignval >
-	class BIND_DLL Allocator< void, _alignval >
+	template< AllocatorSpace eSpace, size_t _alignval >
+	class BIND_DLL Allocator< eSpace, void, _alignval > : public AllocatorFunctions< eSpace >
 	{
 	public:
 		typedef void					value_type;
@@ -198,50 +195,20 @@ namespace binderoo
 		template< typename _newty >
 		struct rebind
 		{
-			typedef Allocator< typename _newty, alignment > other;
+			typedef Allocator< eSpace, typename _newty, alignment > other;
 		};
 		//--------------------------------------------------------------------
 
-		BIND_INLINE						Allocator()
-			: alloc( nullptr )
-			, free( nullptr )
-			, calloc( nullptr )
-			, realloc( nullptr )													{ }
-		//--------------------------------------------------------------------
-
-		BIND_INLINE						Allocator( AllocatorFunc a, DeallocatorFunc d, CAllocatorFunc c, ReallocatorFunc r )
-			: alloc( a )
-			, free( d )
-			, calloc( c )
-			, realloc( r )															{ }
-		//--------------------------------------------------------------------
-
-		BIND_INLINE						Allocator( const Allocator& other )
-			: alloc( other.alloc )
-			, free( other.free )
-			, calloc( other.calloc )
-			, realloc( other.realloc )												{ }
-		//--------------------------------------------------------------------
-
-		template< typename U, size_t A > 
-		BIND_INLINE						Allocator( const Allocator< typename U, A >& other )
-			: alloc( other.alloc )
-			, free( other.free )
-			, calloc( other.calloc )
-			, realloc( other.realloc )												{ }
-		//--------------------------------------------------------------------
-
+		BIND_INLINE						Allocator()									{ }
+		BIND_INLINE						Allocator( const Allocator& other )			{ }
+		template< AllocatorSpace Space, typename U, size_t A > 
+		BIND_INLINE						Allocator( const Allocator< Space, typename U, A >& other )	{ }
 		BIND_INLINE						~Allocator()								{ }
 		//--------------------------------------------------------------------
 
-		template< typename U, size_t S >
-		BIND_INLINE bool				operator==( const Allocator< U, S >& rhs )	{ return true; }
+		template< AllocatorSpace Space, typename U, size_t A >
+		BIND_INLINE bool				operator==( const Allocator< Space, U, A >& rhs )	{ return true; }
 		//--------------------------------------------------------------------
-
-		AllocatorFunc					alloc;
-		DeallocatorFunc					free;
-		CAllocatorFunc					calloc;
-		ReallocatorFunc					realloc;
 	};
 }
 //----------------------------------------------------------------------------
