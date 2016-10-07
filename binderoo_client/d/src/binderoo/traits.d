@@ -116,15 +116,33 @@ template IsStaticMember( T, alias Member )
 }
 //----------------------------------------------------------------------------
 
-template ArrayType( A : T[], T )
+template IsPointer( T )
 {
-	alias ArrayType = T;
+	enum IsPointer = false;
 }
 //----------------------------------------------------------------------------
 
-template ArrayType( A : T[ E ], T, E )
+template IsPointer( T : T* )
 {
-	alias ArrayType = T;
+	enum IsPointer = true;
+}
+//----------------------------------------------------------------------------
+
+template ArrayValueType( A : T[], T )
+{
+	alias ArrayValueType = T;
+}
+//----------------------------------------------------------------------------
+
+template ArrayValueType( A : T[ E ], T, E )
+{
+	alias ArrayValueType = T;
+}
+//----------------------------------------------------------------------------
+
+template ArrayKeyType( A : T[ E ], T, E )
+{
+	alias ArrayKeyType = E;
 }
 //----------------------------------------------------------------------------
 
@@ -143,6 +161,30 @@ template IsSomeArray( A : T[], T )
 template IsSomeArray( A : T[ E ], T, E )
 {
 	enum IsSomeArray = true;
+}
+//----------------------------------------------------------------------------
+
+template IsPlainArray( T )
+{
+	enum IsPlainArray = false;
+}
+//----------------------------------------------------------------------------
+
+template IsPlainArray( A : T[], T )
+{
+	enum IsPlainArray = true;
+}
+//----------------------------------------------------------------------------
+
+template IsAssociativeArray( T )
+{
+	enum IsAssociativeArray = false;
+}
+//----------------------------------------------------------------------------
+
+template IsAssociativeArray( A : T[ E ], T, E )
+{
+	enum IsAssociativeArray = true;
 }
 //----------------------------------------------------------------------------
 
