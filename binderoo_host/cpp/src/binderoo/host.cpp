@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "binderoo/boundfunction.h"
 #include "binderoo/boundobject.h"
+#include "binderoo/containers.h"
 #include "binderoo/exports.h"
 #include "binderoo/hash.h"
 #include "binderoo/imports.h"
@@ -44,21 +45,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Windows.h>
 //----------------------------------------------------------------------------
 
+binderoo::AllocatorFunc				binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Host >::alloc		= nullptr;
+binderoo::DeallocatorFunc			binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Host >::free		= nullptr;
+binderoo::CAllocatorFunc			binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Host >::calloc		= nullptr;
+binderoo::ReallocatorFunc			binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Host >::realloc		= nullptr;
+
 binderoo::Host*	binderoo::Host::pActiveHost				= nullptr;
 
 namespace binderoo
 {
-	typedef std::basic_string< char, std::char_traits< char >, binderoo::Allocator< char > >		InternalString;
-	typedef std::vector< InternalString, binderoo::Allocator< InternalString > >					InternalStringVector;
+	typedef Containers< AllocatorSpace::Host >::InternalString												InternalString;
+	typedef std::vector< InternalString, binderoo::Allocator< AllocatorSpace::Host, InternalString > >		InternalStringVector;
 
-	typedef void					( BIND_C_CALL *ImportFunctionsFromPtr )							( binderoo::Slice< binderoo::BoundFunction > );
-	typedef void					( BIND_C_CALL *GetExportedObjectsPtr )							( binderoo::Slice< binderoo::BoundObject >* );
-	typedef void					( BIND_C_CALL *GetExportedFunctionsPtr )						( binderoo::Slice< binderoo::BoundFunction >* );
-	typedef void*					( BIND_C_CALL *CreateObjectByNamePtr )							( DString );
-	typedef void*					( BIND_C_CALL *CreateObjectByHashPtr )							( uint64_t );
-	typedef void					( BIND_C_CALL *DestroyObjectByNamePtr )							( DString, void* );
-	typedef void					( BIND_C_CALL *DestroyObjectByHashPtr )							( uint64_t, void* );
-	typedef const char*				( BIND_C_CALL *GenerateBindingDeclarationsForAllObjectsPtr )	( UnalignedAllocatorFunc allocator );
+	typedef void					( BIND_C_CALL *ImportFunctionsFromPtr )									( binderoo::Slice< binderoo::BoundFunction > );
+	typedef void					( BIND_C_CALL *GetExportedObjectsPtr )									( binderoo::Slice< binderoo::BoundObject >* );
+	typedef void					( BIND_C_CALL *GetExportedFunctionsPtr )								( binderoo::Slice< binderoo::BoundFunction >* );
+	typedef void*					( BIND_C_CALL *CreateObjectByNamePtr )									( DString );
+	typedef void*					( BIND_C_CALL *CreateObjectByHashPtr )									( uint64_t );
+	typedef void					( BIND_C_CALL *DestroyObjectByNamePtr )									( DString, void* );
+	typedef void					( BIND_C_CALL *DestroyObjectByHashPtr )									( uint64_t, void* );
+	typedef const char*				( BIND_C_CALL *GenerateBindingDeclarationsForAllObjectsPtr )			( UnalignedAllocatorFunc allocator );
 
 	enum class DynamicLibStatus : int
 	{
@@ -74,10 +80,8 @@ namespace binderoo
 
 	struct HostDynamicLib
 	{
-		HostDynamicLib( binderoo::Allocator< char > allocator )
-			: strName( allocator )
-			, strPath( allocator )
-			, hModule( nullptr )
+		HostDynamicLib()
+			: hModule( nullptr )
 			, eStatus( DynamicLibStatus::NotLoaded )
 			, importFunctionsFrom( nullptr )
 			, getExportedObjects( nullptr )
@@ -92,6 +96,8 @@ namespace binderoo
 
 		InternalString									strName;
 		InternalString									strPath;
+		InternalString									strScratchPath;
+		InternalString									strScratchPathSymbols;
 		HMODULE											hModule;
 		DynamicLibStatus								eStatus;
 
@@ -109,29 +115,23 @@ namespace binderoo
 	class HostImplementation
 	{
 	public:
-		typedef Allocator< void, 16 >														DefaultAllocator;
+		typedef Allocator< AllocatorSpace::Host, void, 16 >													DefaultAllocator;
 
-		typedef Allocator< BoundFunction >													FunctionAllocator;
-		typedef std::vector< BoundFunction, FunctionAllocator >								FunctionVector;
+		typedef Allocator< AllocatorSpace::Host, BoundFunction >											FunctionAllocator;
+		typedef std::vector< BoundFunction, FunctionAllocator >												FunctionVector;
 
-		typedef binderoo::FNV1aHasher< BoundFunction::Hashes >								FunctionMapHasher;
-		typedef std::pair< const BoundFunction::Hashes, size_t >							FunctionMapPair;
-		typedef Allocator< FunctionMapPair >												FunctionMapAllocator;
+		typedef binderoo::FNV1aHasher< BoundFunction::Hashes >												FunctionMapHasher;
+		typedef std::pair< const BoundFunction::Hashes, size_t >											FunctionMapPair;
+		typedef Allocator< AllocatorSpace::Host, FunctionMapPair >											FunctionMapAllocator;
 
-		typedef std::equal_to< BoundFunction::Hashes >										FunctionMapComparer;
+		typedef std::equal_to< BoundFunction::Hashes >														FunctionMapComparer;
 		typedef std::unordered_map< BoundFunction::Hashes, size_t, FunctionMapHasher, FunctionMapComparer, FunctionMapAllocator >	FunctionMap;
 
-		typedef std::vector< HostDynamicLib, Allocator< HostDynamicLib > >					DynamicLibVector;
+		typedef std::vector< HostDynamicLib, Allocator< AllocatorSpace::Host, HostDynamicLib > >			DynamicLibVector;
 		//--------------------------------------------------------------------
 
 		HostImplementation( HostConfiguration& config )
 			: configuration( config )
-			, allocator( config.alloc, config.free, config.calloc, config.realloc )
-			, mapExportedFunctionIndices( allocator )
-			, vecExportedFunctions( allocator )
-			, mapImportedFunctionIndices( allocator )
-			, vecImportedFunctions( allocator )
-			, vecDynamicLibs( allocator )
 		{
 			collectExports();
 			collectDynamicLibraries();
@@ -164,7 +164,6 @@ namespace binderoo
 
 	private:
 		HostConfiguration&		configuration;
-		DefaultAllocator		allocator;
 
 		FunctionMap				mapExportedFunctionIndices;
 		FunctionVector			vecExportedFunctions;
@@ -182,6 +181,8 @@ binderoo::Host::Host( binderoo::HostConfiguration& config )
 	: configuration( config )
 	, pImplementation( nullptr )
 {
+	AllocatorFunctions< AllocatorSpace::Host >::setup( config.alloc, config.free, config.calloc, config.realloc );
+
 	pImplementation = (HostImplementation*)config.alloc( sizeof( HostImplementation ), sizeof( size_t ) );
 	new( pImplementation ) HostImplementation( config );
 
@@ -282,14 +283,14 @@ void binderoo::HostImplementation::collectExports()
 
 void binderoo::HostImplementation::collectDynamicLibraries()
 {
-	InternalStringVector vecFoundFiles( allocator );
+	InternalStringVector vecFoundFiles;
 
 	for( auto& searchPath : configuration.strDynamicLibSearchFolders )
 	{
 		WIN32_FIND_DATA		foundData;
 		HANDLE				hFoundHandle = INVALID_HANDLE_VALUE;
 
-		InternalString strSearchPath( searchPath.data(), searchPath.length(), allocator );
+		InternalString strSearchPath( searchPath.data(), searchPath.length() );
 		std::replace( strSearchPath.begin(), strSearchPath.end(), '\\', '/' );
 
 		if( strSearchPath.back() != '/' )
@@ -305,7 +306,7 @@ void binderoo::HostImplementation::collectDynamicLibraries()
 		BOOL bFound = hFoundHandle != INVALID_HANDLE_VALUE ? TRUE : FALSE;
 		while( bFound )
 		{
-			InternalString fileName = InternalString( foundData.cFileName, allocator );
+			InternalString fileName = InternalString( foundData.cFileName );
 			std::replace( fileName.begin(), fileName.end(), '\\', '/' );
 			InternalString fullFileName = strSearchPath;
 			fullFileName += fileName;
@@ -326,7 +327,7 @@ void binderoo::HostImplementation::collectDynamicLibraries()
 		size_t uDotIndex = libPath.find_last_of( '.' );
 		uDotIndex = ( uDotIndex == std::string::npos ? libPath.length() - 1 : uDotIndex );
 
-		HostDynamicLib dynamicLib( allocator );
+		HostDynamicLib dynamicLib;
 		dynamicLib.strName = libPath.substr( uSlashIndex + 1, uDotIndex - uSlashIndex - 1 );
 		dynamicLib.strPath = libPath;
 		dynamicLib.hModule = nullptr;
@@ -344,7 +345,37 @@ void binderoo::HostImplementation::collectDynamicLibraries()
 
 bool binderoo::HostImplementation::loadDynamicLibrary( binderoo::HostDynamicLib& lib )
 {
-	HMODULE hModule = LoadLibrary( lib.strPath.c_str() );
+	InternalString strTempPath;
+	DWORD dTempPathLength = GetTempPath( 0, nullptr );
+	strTempPath.resize( dTempPathLength - 1 );
+	GetTempPath( dTempPathLength, (char*)strTempPath.data() );
+	std::replace( strTempPath.begin(), strTempPath.end(), '\\', '/' );
+	strTempPath += "binderoo/";
+
+	DWORD dPathAttributes = GetFileAttributes( strTempPath.c_str() );
+	if( dPathAttributes == INVALID_FILE_ATTRIBUTES || ( dPathAttributes & FILE_ATTRIBUTE_DIRECTORY ) == 0 )
+	{
+		CreateDirectory( strTempPath.c_str(), nullptr );
+	}
+
+	lib.strScratchPath = strTempPath + lib.strName + ".dll";
+	lib.strScratchPathSymbols = strTempPath + lib.strName + ".pdb";
+
+	BOOL bSuccess = CopyFile( lib.strPath.c_str(), lib.strScratchPath.c_str(), FALSE );
+
+	{
+		InternalString strPDBSource = lib.strPath;
+
+		strPDBSource.replace( strPDBSource.find_last_of( "." ), 4, ".pdb" );
+
+		DWORD dPDBAttributes = GetFileAttributes( strPDBSource.c_str() );
+		if( dPathAttributes != INVALID_FILE_ATTRIBUTES )
+		{
+			CopyFile( strPDBSource.c_str(), lib.strScratchPathSymbols.c_str(), FALSE );
+		}
+	}
+
+	HMODULE hModule = LoadLibrary( lib.strScratchPath.c_str() );
 
 	if( hModule != nullptr )
 	{
@@ -403,7 +434,7 @@ void binderoo::HostImplementation::registerImportedFunction( binderoo::ImportedB
 	if( pFunction )
 	{
 		pInstance->pObjectInstance		= (void*)pFunction->pFunction;
-		pInstance->pObjectDescriptor	= (void*)pFunction;
+		pInstance->pObjectDescriptor		= (void*)pFunction;
 	}
 }
 //----------------------------------------------------------------------------
@@ -480,7 +511,7 @@ const binderoo::BoundFunction* binderoo::HostImplementation::getImportedFunction
 
 const char* binderoo::HostImplementation::generateCPPStyleBindingDeclarationsForAllObjects()
 {
-	InternalStringVector vecAllDeclarations( allocator );
+	InternalStringVector vecAllDeclarations;
 
 	const char* const pSeparator = "\n\n";
 	const size_t uSeparatorLength = 2;
@@ -492,7 +523,7 @@ const char* binderoo::HostImplementation::generateCPPStyleBindingDeclarationsFor
 	{
 		const char* pDeclarations = lib.generateCPPStyleBindingDeclarationsForAllObjects( configuration.unaligned_alloc );
 
-		InternalString strDeclarations( pDeclarations, strlen( pDeclarations ), allocator );
+		InternalString strDeclarations( pDeclarations, strlen( pDeclarations ) );
 		vecAllDeclarations.push_back( strDeclarations );
 		uRequiredSpace += strDeclarations.size();
 

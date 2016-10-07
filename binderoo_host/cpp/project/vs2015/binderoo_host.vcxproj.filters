@@ -56,6 +56,9 @@
     <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\functiontraits.h">
       <Filter>interface\binderoo</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\src\binderoo\containers.h">
+      <Filter>interface\binderoo</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\functiontraits_vs2012.inl">

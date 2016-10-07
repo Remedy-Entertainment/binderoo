@@ -98,7 +98,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>../../src/; ../../interface/; ../../../../binderoo_common/cpp/interface;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../src/; ../../interface/; ../../../../binderoo_common/cpp/interface; ../../../../binderoo_common/cpp/src;</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>BINDEROO_EXPORT;_WINDLL;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -128,7 +128,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>../../src/; ../../interface/; ../../../../binderoo_common/cpp/interface;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../src/; ../../interface/; ../../../../binderoo_common/cpp/interface; ../../../../binderoo_common/cpp/src;</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>BINDEROO_EXPORT;_WINDLL;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -147,6 +147,7 @@
     <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\functiontraits.h" />
     <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\hash.h" />
     <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\slice.h" />
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\src\binderoo\containers.h" />
     <ClInclude Include="..\..\interface\binderoo\boundfunction.h" />
     <ClInclude Include="..\..\interface\binderoo\boundobject.h" />
     <ClInclude Include="..\..\interface\binderoo\exports.h" />
