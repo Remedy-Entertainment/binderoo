@@ -5,56 +5,86 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="interface">
-      <UniqueIdentifier>{00445da3-1661-4c10-8ea7-f28faeb08500}</UniqueIdentifier>
+    <Filter Include="common">
+      <UniqueIdentifier>{bf7025a7-b26d-491e-8f6b-aeaf59160d52}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src">
+    <Filter Include="service">
+      <UniqueIdentifier>{33651ebd-72a5-4890-9df9-92940be56a71}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="service\src">
       <UniqueIdentifier>{c4424d31-e80e-4df8-991c-24a3120a712a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="interface\binderoo">
+    <Filter Include="service\interface">
+      <UniqueIdentifier>{66393a2f-054c-4000-9202-cf2a7d09bfe4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="service\interface\binderoo">
+      <UniqueIdentifier>{2100660b-d423-427b-99a5-4ab7d966d03e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="common\interface">
+      <UniqueIdentifier>{00445da3-1661-4c10-8ea7-f28faeb08500}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="common\interface\binderoo">
       <UniqueIdentifier>{67815aa0-2ce9-4964-beb1-cf8ce1967378}</UniqueIdentifier>
     </Filter>
-    <Filter Include="interface\fastdelegate">
+    <Filter Include="common\interface\fastdelegate">
       <UniqueIdentifier>{28ca182e-7dfe-4873-bb64-4d567fa9f492}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="common\src">
+      <UniqueIdentifier>{a2728552-79b2-4d76-9dca-119f28ceb87e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="common\src\binderoo">
+      <UniqueIdentifier>{f862361f-0fbf-42fa-88ef-5d106d12bf57}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\filewatcher.h">
-      <Filter>src</Filter>
+      <Filter>service\src</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\allocator.h">
-      <Filter>interface\binderoo</Filter>
+      <Filter>common\interface\binderoo</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\defs.h">
-      <Filter>interface\binderoo</Filter>
+      <Filter>common\interface\binderoo</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\hash.h">
-      <Filter>interface\binderoo</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\interface\service.h">
-      <Filter>interface\binderoo</Filter>
+      <Filter>common\interface\binderoo</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\slice.h">
-      <Filter>interface\binderoo</Filter>
+      <Filter>common\interface\binderoo</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\functiontraits.h">
-      <Filter>interface\binderoo</Filter>
+      <Filter>common\interface\binderoo</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\fastdelegate\fastdelegate.h">
-      <Filter>interface\fastdelegate</Filter>
+      <Filter>common\interface\fastdelegate</Filter>
     </ClInclude>
     <ClInclude Include="..\..\interface\binderoo\monitoredfolder.h">
-      <Filter>interface\binderoo</Filter>
+      <Filter>service\interface\binderoo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\interface\service.h">
+      <Filter>service\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\src\binderoo\fileutils.h">
+      <Filter>common\src\binderoo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\src\binderoo\containers.h">
+      <Filter>common\src\binderoo</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\filewatcher_win32.cpp">
-      <Filter>src</Filter>
+      <Filter>service\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\service.cpp">
+      <Filter>service\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\binderoo_common\cpp\src\binderoo\fileutils.cpp">
+      <Filter>common\src\binderoo</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\functiontraits_vs2012.inl">
-      <Filter>interface\binderoo</Filter>
+      <Filter>common\interface\binderoo</Filter>
     </None>
   </ItemGroup>
 </Project>

@@ -36,6 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "binderoo/allocator.h"
 #include "binderoo/slice.h"
 
+#include "binderoo/monitoredfolder.h"
+
 namespace binderoo
 {
 	enum class CompilerType : int32_t
@@ -49,12 +51,6 @@ namespace binderoo
 		DString								strCompilerLocation;
 		DString								strLinkerLocation;
 		CompilerType						eType;
-	};
-
-	struct MonitoredFolder
-	{
-		DString								strSourceFolder;
-		DString								strOutputFolder;
 	};
 
 	typedef fastdelegate::FastDelegate0< void > ThreadOSUpdateFunction;

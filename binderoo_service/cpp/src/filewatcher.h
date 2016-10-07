@@ -33,26 +33,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _BINDEROO_SERVICE_FILEWATCHER_H_
 
 #include "binderoo/defs.h"
-#include "binderoo/monitoredfolder.h"
-
 #include "binderoo/allocator.h"
-#include <string>
-#include <vector>
+#include "binderoo/containers.h"
+#include "binderoo/monitoredfolder.h"
 
 namespace binderoo
 {
-	typedef std::basic_string< char, std::char_traits< char >, binderoo::Allocator< char > >	InternalString;
-	//------------------------------------------------------------------------
-
 	struct ChangedFiles
 	{
-		MonitoredFolder*		pThisFolder;
-		InternalString			strChangedFile;
+		MonitoredFolder*												pThisFolder;
+		Containers< AllocatorSpace::Service >::InternalString			strChangedFile;
 	};
 	//------------------------------------------------------------------------
 
-	typedef std::vector< ChangedFiles, binderoo::Allocator< ChangedFiles > >					ChangedFilesVector;
-	typedef std::vector< void*, binderoo::Allocator< void* > >									VoidPointerVector;
+	typedef std::vector< ChangedFiles, binderoo::Allocator< AllocatorSpace::Service, ChangedFiles > >					ChangedFilesVector;
+	typedef std::vector< void*, binderoo::Allocator< AllocatorSpace::Service, void* > >									VoidPointerVector;
 	//------------------------------------------------------------------------
 
 	class FileWatcher
@@ -63,6 +58,9 @@ namespace binderoo
 
 		bool detectFileChanges();
 		BIND_INLINE const ChangedFilesVector& getChangedFiles() const			{ return vecCurrentChangedFiles; }
+
+		void getAllFiles( Containers< AllocatorSpace::Service >::StringVector& vecOutput );
+		void getAllFiles( const MonitoredFolder& folder, Containers< AllocatorSpace::Service >::StringVector& vecOutput );
 		//--------------------------------------------------------------------
 
 	private:
