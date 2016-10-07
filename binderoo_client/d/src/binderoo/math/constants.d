@@ -61,7 +61,7 @@ auto SignMask( InputType, bool e1 = true, bool e2 = true, bool e3 = true, bool e
 
 		alias VectorType = Unqualified!( typeof( InputType.m_data ) );
 		alias VectorArrayType = TemplateParametersOf!( VectorType )[ 0 ];
-		alias PrimitiveType = ArrayType!( VectorArrayType );
+		alias PrimitiveType = ArrayValueType!( VectorArrayType );
 	
 		template Mask( bool bTrue )
 		{
@@ -164,7 +164,7 @@ auto FullMask( InputType, bool e1 = true, bool e2 = true, bool e3 = true, bool e
 
 		alias VectorType = Unqualified!( typeof( InputType.m_data ) );
 		alias VectorArrayType = TemplateParametersOf!( VectorType )[ 0 ];
-		alias PrimitiveType = ArrayType!( VectorArrayType );
+		alias PrimitiveType = ArrayValueType!( VectorArrayType );
 
 		template Mask( bool bTrue )
 		{

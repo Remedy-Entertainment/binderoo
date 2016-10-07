@@ -83,25 +83,25 @@ struct TypeDescriptor( T, bool bIsRef = false )
 	enum			IsConst							= binderoo.traits.IsConst!( T );
 	enum			IsImmutable						= binderoo.traits.IsImmutable!( T );
 	enum			IsRef							= bIsRef;
-	enum			IsPointer						= std.traits.isPointer!( T );
+	enum			IsPointer						= binderoo.traits.IsPointer!( T );
 
 	// Arrays are a bit special. We handle associative arrays, arrays, and not-an-array separately.
-	static if( std.traits.isAssociativeArray!( T ) )
+	static if( binderoo.traits.IsAssociativeArray!( T ) )
 	{
 		// We define IsElementAssociativeArray to true AND IsElementArray to false here. This provides a complete descriptor regardless of the type.
 		enum		IsSomeArray						= true;
 		enum		IsAssociativeArray				= true;
 		enum		IsArray							= false;
-		alias 		ArrayValueType					= TypeDescriptor!( std.traits.ValueType!( T ) );
-		alias		ArrayKeyType					= TypeDescriptor!( std.traits.KeyType!( T ) );
+		alias 		ArrayValueType					= TypeDescriptor!( binderoo.traits.ArrayValueType!( T ) );
+		alias		ArrayKeyType					= TypeDescriptor!( binderoo.traits.ArrayKeyType!( T ) );
 	}
-	else static if( std.traits.isArray!( T ) )
+	else static if( binderoo.traits.IsPlainArray!( T ) )
 	{
 		// The key type is aliased to void here as we don't actually have a key type.
 		enum		IsSomeArray						= true;
 		enum		IsAssociativeArray				= false;
 		enum		IsArray							= true;
-		alias		ArrayValueType					= TypeDescriptor!( binderoo.traits.ArrayType!( T ) );
+		alias		ArrayValueType					= TypeDescriptor!( binderoo.traits.ArrayValueType!( T ) );
 		alias		ArrayKeyType					= TypeDescriptor!( void );
 	}
 	else
