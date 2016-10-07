@@ -32,6 +32,30 @@ module binderoo.math.angle;
 
 struct Degrees
 {
+	package this( float fSomeFloatValue )
+	{
+		m_data = fSomeFloatValue;
+	}
+	//------------------------------------------------------------------------
+
+	package void opAssign( float fSomeFloatValue )
+	{
+		m_data = fSomeFloatValue;
+	}
+	//------------------------------------------------------------------------
+
+	this( Radians rRadians )
+	{
+		m_data = ToDegrees( rRadians ).m_data;
+	}
+	//------------------------------------------------------------------------
+
+	void opAssign( Radians rRadians )
+	{
+		m_data = ToDegrees( rRadians ).m_data;
+	}
+	//------------------------------------------------------------------------
+
 	float	m_data = 0.0f;
 	alias	m_data this;
 }
@@ -39,6 +63,30 @@ struct Degrees
 
 struct Radians
 {
+	package this( float fSomeFloatValue )
+	{
+		m_data = fSomeFloatValue;
+	}
+	//------------------------------------------------------------------------
+
+	package void opAssign( float fSomeFloatValue )
+	{
+		m_data = fSomeFloatValue;
+	}
+	//------------------------------------------------------------------------
+
+	this( Degrees dDegrees )
+	{
+		m_data = ToRadians( dDegrees ).m_data;
+	}
+	//------------------------------------------------------------------------
+
+	void opAssign( Degrees dDegrees )
+	{
+		m_data = ToRadians( dDegrees ).m_data;
+	}
+	//------------------------------------------------------------------------
+
 	float	m_data = 0.0f;
 	alias	m_data this;
 }
