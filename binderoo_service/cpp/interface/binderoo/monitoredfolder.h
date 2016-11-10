@@ -37,10 +37,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace binderoo
 {
+	enum class MonitoredFolderType : int32_t
+	{
+		Unknown = 0,
+		ImportsPath,
+		ClientPath,
+	};
+
 	struct MonitoredFolder
 	{
 		DString								strSourceFolder;
+		DString								strSourceExtensions;
 		DString								strOutputFolder;
+		DString								strClientLibraryName;
+		MonitoredFolderType					eType;
 	};
 	//------------------------------------------------------------------------
 }

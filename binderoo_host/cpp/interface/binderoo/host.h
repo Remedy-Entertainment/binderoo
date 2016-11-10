@@ -72,6 +72,19 @@ namespace binderoo
 		~Host();
 		//--------------------------------------------------------------------
 
+		bool checkForReloads();
+		void performReloads();
+		//--------------------------------------------------------------------
+
+		BIND_INLINE void checkForAndPerformReloads()
+		{
+			if( checkForReloads() )
+			{
+				performReloads();
+			}
+		}
+		//--------------------------------------------------------------------
+
 		template< typename _ty >
 		BIND_INLINE void					registerImportedClassInstance( ImportedClassInstance< _ty >* pInstance )
 		{
@@ -110,9 +123,6 @@ namespace binderoo
 
 		template< typename _ty >
 		BIND_INLINE bool destroyImportedClass( void* pObj )						{ return destroyImportedClass( TypeNames< _ty >::getDName(), pObj ); }
-		//--------------------------------------------------------------------
-
-		const BoundFunction* getImportedFunctionDetails( const char* pName ) const;
 		//--------------------------------------------------------------------
 
 		// Returns a string allocated with your unaligned_alloc function that represents

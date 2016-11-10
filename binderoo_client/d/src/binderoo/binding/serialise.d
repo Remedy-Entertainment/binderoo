@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //----------------------------------------------------------------------------
 
 module binderoo.binding.serialise;
-//-----------------------------------------------------------------------------
+//----------------------------------------------------------------------------
 
 import binderoo.binding.attributes;
 import binderoo.variabledescriptor;
@@ -36,13 +36,13 @@ import binderoo.traits;
 
 import core.memory;
 import std.json;
-//-----------------------------------------------------------------------------
+//----------------------------------------------------------------------------
 
 pragma( inline ) JSONValue serialise( Type )( ref Type val ) if( isScalarType!( Type ) || is( Type == string ) )
 {
 	return JSONValue( val );
 }
-//-----------------------------------------------------------------------------
+//----------------------------------------------------------------------------
 
 pragma( inline ) void deserialise( Type )( ref Type target, JSONValue source ) if( isScalarType!( Type ) || is( Type == string ) )
 {
@@ -66,7 +66,7 @@ pragma( inline ) void deserialise( Type )( ref Type target, JSONValue source ) i
 		target = source.str;
 	}
 }
-//-----------------------------------------------------------------------------
+//----------------------------------------------------------------------------
 
 pragma( inline ) JSONValue serialise( Type )( ref Type array ) if( IsSomeArray!( Type ) && !is( Type == string ) )
 {
@@ -80,7 +80,7 @@ pragma( inline ) JSONValue serialise( Type )( ref Type array ) if( IsSomeArray!(
 
 	return JSONValue( values );
 }
-//-----------------------------------------------------------------------------
+//----------------------------------------------------------------------------
 
 pragma( inline ) void deserialise( Type )( ref Type target, JSONValue source ) if( IsSomeArray!( Type ) && !is( Type == string ) )
 {
@@ -94,7 +94,7 @@ pragma( inline ) void deserialise( Type )( ref Type target, JSONValue source ) i
 		deserialise( target[ iIndex ], currVal );
 	}
 }
-//-----------------------------------------------------------------------------
+//----------------------------------------------------------------------------
 
 pragma( inline ) JSONValue serialise( Type )( ref Type pointer ) if( isPointer!( Type ) )
 {
@@ -123,7 +123,7 @@ pragma( inline ) JSONValue serialise( Type )( ref Type pointer ) if( isPointer!(
 		return rawPtr;
 	}*/
 }
-//-----------------------------------------------------------------------------
+//----------------------------------------------------------------------------
 
 pragma( inline ) void deserialise( Type )( ref Type target, JSONValue source ) if( isPointer!( Type ) )
 {
@@ -139,7 +139,7 @@ pragma( inline ) void deserialise( Type )( ref Type target, JSONValue source ) i
 		target = null;
 	}
 }
-//-----------------------------------------------------------------------------
+//----------------------------------------------------------------------------
 
 JSONValue serialise( Type )( ref Type object ) if( is( Type == struct ) || is( Type == union ) || is( Type == class ) || is( Type == interface ) )
 {
@@ -158,7 +158,7 @@ JSONValue serialise( Type )( ref Type object ) if( is( Type == struct ) || is( T
 
 	return objectRoot;
 }
-//-----------------------------------------------------------------------------
+//----------------------------------------------------------------------------
 
 void deserialise( Type )( ref Type target, JSONValue source ) if( is( Type == struct ) || is( Type == union ) || is( Type == class ) || is( Type == interface ) )
 {
@@ -173,6 +173,6 @@ void deserialise( Type )( ref Type target, JSONValue source ) if( is( Type == st
 		}
 	}
 }
-//-----------------------------------------------------------------------------
+//----------------------------------------------------------------------------
 
 //============================================================================

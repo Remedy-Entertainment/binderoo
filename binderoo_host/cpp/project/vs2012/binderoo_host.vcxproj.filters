@@ -5,61 +5,103 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="interface">
+    <Filter Include="common">
+      <UniqueIdentifier>{2863f3a6-5876-4f25-9b2d-c00bb8d3ffd4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="host">
+      <UniqueIdentifier>{6221fad2-78e2-4a83-a3e2-2b291102e993}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="common\interface">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
     </Filter>
-    <Filter Include="src">
+    <Filter Include="common\interface\binderoo">
+      <UniqueIdentifier>{a66f1f03-b6ff-4d42-8998-f4535d6ea5c2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="host\src">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="src\windows">
+    <Filter Include="host\src\windows">
       <UniqueIdentifier>{66b483c4-d062-4f7b-8001-af9c809fb53c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="host\interface">
+      <UniqueIdentifier>{346afabd-26cb-4848-baa2-161b3317f29b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="host\interface\binderoo">
+      <UniqueIdentifier>{6a29636c-6999-4221-8b6f-2a9ed3ec1a8b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="common\interface\fastdelegate">
+      <UniqueIdentifier>{7c065c70-27bb-4ff9-be6d-7255d1c950a8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="common\src">
+      <UniqueIdentifier>{8b7630be-0b81-4456-ac89-88607e16b2a2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="common\src\binderoo">
+      <UniqueIdentifier>{47757a1e-0ff1-4824-a264-9178951dc85a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\binderoo\exports.cpp">
-      <Filter>src</Filter>
+      <Filter>host\src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\binderoo\host.cpp">
-      <Filter>src</Filter>
+      <Filter>host\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\binderoo_common\cpp\src\binderoo\fileutils.cpp">
+      <Filter>common\src\binderoo</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\binderoo_common\cpp\src\binderoo\sharedevent.cpp">
+      <Filter>common\src\binderoo</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\interface\binderoo\boundfunction.h">
-      <Filter>interface</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\interface\binderoo\slice.h">
-      <Filter>interface</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\interface\binderoo\defs.h">
-      <Filter>interface</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\interface\binderoo\exports.h">
-      <Filter>interface</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\interface\binderoo\functiontraits.h">
-      <Filter>interface</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\interface\binderoo\hash.h">
-      <Filter>interface</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\interface\binderoo\host.h">
-      <Filter>interface</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\interface\binderoo\allocator.h">
-      <Filter>interface</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\interface\binderoo\boundobject.h">
-      <Filter>interface</Filter>
+      <Filter>host\interface\binderoo</Filter>
     </ClInclude>
     <ClInclude Include="..\..\interface\binderoo\imports.h">
-      <Filter>interface</Filter>
+      <Filter>host\interface\binderoo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\interface\binderoo\exports.h">
+      <Filter>host\interface\binderoo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\interface\binderoo\boundobject.h">
+      <Filter>host\interface\binderoo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\interface\binderoo\boundfunction.h">
+      <Filter>host\interface\binderoo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\allocator.h">
+      <Filter>common\interface\binderoo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\defs.h">
+      <Filter>common\interface\binderoo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\functiontraits.h">
+      <Filter>common\interface\binderoo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\hash.h">
+      <Filter>common\interface\binderoo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\slice.h">
+      <Filter>common\interface\binderoo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\fastdelegate\fastdelegate.h">
+      <Filter>common\interface\fastdelegate</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\src\binderoo\containers.h">
+      <Filter>common\src\binderoo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\src\binderoo\fileutils.h">
+      <Filter>common\src\binderoo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\src\binderoo\sharedevent.h">
+      <Filter>common\src\binderoo</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\interface\binderoo\functiontraits_vs2012.inl">
-      <Filter>interface</Filter>
+    <None Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\functiontraits_vs2012.inl">
+      <Filter>common\interface\binderoo</Filter>
     </None>
   </ItemGroup>
 </Project>

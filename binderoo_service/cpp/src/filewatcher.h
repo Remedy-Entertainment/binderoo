@@ -61,12 +61,12 @@ namespace binderoo
 
 		void getAllFiles( Containers< AllocatorSpace::Service >::StringVector& vecOutput );
 		void getAllFiles( const MonitoredFolder& folder, Containers< AllocatorSpace::Service >::StringVector& vecOutput );
+		void getAllFiles( const Containers< AllocatorSpace::Service >::InternalString& strFolder, const Containers< AllocatorSpace::Service >::InternalString& strExtensions, Containers< AllocatorSpace::Service >::StringVector& vecOutput );
 		//--------------------------------------------------------------------
 
 	private:
 		Slice< MonitoredFolder >				monitoredFolders;
 		VoidPointerVector						vecFileWatchersHandles;
-		VoidPointerVector						vecFileNotificationsHandles;
 
 		ChangedFilesVector						vecCurrentChangedFiles;
 	};

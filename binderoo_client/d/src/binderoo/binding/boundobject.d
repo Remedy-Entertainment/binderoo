@@ -40,7 +40,7 @@ alias BoundObjectAllocator		= extern( C ) void* function( size_t uCount );
 alias BoundObjectDeallocator	= extern( C ) void function( void* pObject );
 alias BoundObjectThunk			= extern( C ) void* function( void* );
 alias BoundObjectSerialise		= extern( C ) const( char )* function( void* );
-alias BoundObjectDeserialise	= extern( C ) void function( void*, const char* );
+alias BoundObjectDeserialise	= extern( C ) void function( void*, const( char )* );
 
 @CTypeName( "binderoo::BoundObject", "binderoo/boundobject.h" )
 struct BoundObject
@@ -59,6 +59,8 @@ struct BoundObject
 	BoundObjectAllocator		alloc;
 	BoundObjectDeallocator		free;
 	BoundObjectThunk			thunk;
+	BoundObjectSerialise		serialise;
+	BoundObjectDeserialise		deserialise;
 
 	Type						eType = Type.Undefined;
 }
@@ -82,7 +84,15 @@ struct BoundObjectFunctions( Type )
 
 	static extern( C ) void* thunkObj( void* pObj )
 	{
-		return cast( void* )cast( CastType )cast( Object )pObj;
+		static if( is( Type == class ) )
+		{
+			return cast( void* )cast( CastType )cast( Object )pObj;
+		}
+		else
+		{
+			// TODO: Work out how to thunk value types
+			return pObj;
+		}
 	}
 
 	static extern( C ) void* allocObj( size_t uCount = 1 )
@@ -101,8 +111,16 @@ struct BoundObjectFunctions( Type )
 
 		GC.addRange( mem.ptr, TypeSize );
 
-		Type* pVal = cast(Type*)mem;
-		*pVal = Type.init;
+		static if( is( Type == struct ) )
+		{
+			Type* pVal = cast(Type*)mem;
+			*pVal = Type.init;
+		}
+		else
+		{
+			Type pVal = cast(Type)mem;
+			emplace!( Type )( mem[ 0 .. TypeSize ] );
+		}
 
 		return cast(void*)mem;
 	}
@@ -118,7 +136,7 @@ struct BoundObjectFunctions( Type )
 		import core.memory : GC;
 
 		// TODO: Provide allocator API
-		auto val = cast( CastType )cast( Object )pObj;
+		auto val = cast( CastType )thunkObj( pObj );
 		destroy( val );
 
 		GC.removeRange( pObj );
@@ -133,8 +151,46 @@ struct BoundObjectFunctions( Type )
 	}
 	body
 	{
-		//auto serialised = serialise( *( cast( Type* )pObj ) );
-		return null;
+		import std.json;
+		import std.string : toStringz;
+
+/+		static if( is( Type == struct ) )
+		{
+			JSONValue serialised = serialise( *( cast( Type* )pObj ) );
+		}
+		else
+		{
+			JSONValue serialised = serialise( cast( CastType ) pObj );
+		}
+
+		string strJSON = toJSON( &serialised );
+
+		return strJSON.toStringz;+/
+		return "";
+	}
+
+	static extern( C ) void deserialiseObj( void* pObj, const( char )* pData )
+	in
+	{
+		assert( thunkObj( pObj ) !is null, "Calling " ~ Type.stringof ~ " deserialiser on a different type!" );
+	}
+	body
+	{
+		import std.json;
+		import core.stdc.string : strlen;
+
+/+		const( char )[] strJSONSource = pData[ 0 .. strlen( pData ) ];
+		JSONValue json = parseJSON( strJSONSource );
+
+		CastType castObj = cast( CastType )pObj;
+		static if( is( Type == struct ) )
+		{
+//			deserialise( *pCastObj );
+		}
+		else
+		{
+			deserialise( castObj );
+		}+/
 	}
 }
 //----------------------------------------------------------------------------

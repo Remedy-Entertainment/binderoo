@@ -27,10 +27,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 //----------------------------------------------------------------------------
 
-#include "service.h"
+#include "binderoo/service.h"
 #include "filewatcher.h"
 
 #include "binderoo/fileutils.h"
+#include "binderoo/sharedevent.h"
 
 #include <atomic>
 #include <map>
@@ -39,10 +40,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Windows.h>
 //----------------------------------------------------------------------------
 
-binderoo::AllocatorFunc				binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Service >::alloc		= nullptr;
-binderoo::DeallocatorFunc			binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Service >::free			= nullptr;
-binderoo::CAllocatorFunc			binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Service >::calloc		= nullptr;
-binderoo::ReallocatorFunc			binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Service >::realloc		= nullptr;
+binderoo::AllocatorFunc				binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Service >::fAlloc		= nullptr;
+binderoo::DeallocatorFunc			binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Service >::fFree		= nullptr;
+binderoo::CAllocatorFunc			binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Service >::fCalloc		= nullptr;
+binderoo::ReallocatorFunc			binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Service >::fRealloc		= nullptr;
 //----------------------------------------------------------------------------
 
 namespace binderoo
@@ -57,9 +58,11 @@ namespace binderoo
 			, hStdOutputWrite( nullptr )
 			, hStdErrorRead( nullptr )
 			, hStdErrorWrite( nullptr )
-			, dReturnCode( 0 )
+			, dReturnCode( -1 )
 			, bLaunched( FALSE )
 		{
+			std::replace( strProgramLocation.begin(), strProgramLocation.end(), '/', '\\' );
+
 			prepareEnvironmentVariables( environmentVariables );
 
 			ZeroMemory( &startupInfo, sizeof( STARTUPINFO ) );
@@ -88,6 +91,14 @@ namespace binderoo
 
 				bLaunched = CreateProcess( strProgramLocation.c_str(), (char*)strProgramParameters.c_str(), NULL, NULL, TRUE, CREATE_NEW_CONSOLE, (void*)vecEnvironmentVariables.data(), workingLocation.c_str(), &startupInfo, &processInfo );
 
+				char messageBuffer[ 2048 ] = { 0 };
+
+				if( !bLaunched )
+				{
+					DWORD dError = GetLastError();
+					FormatMessage( FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, dError, 0, messageBuffer, 2048, nullptr );
+				}
+
 				if( bSynchronous )
 				{
 					waitForProgramEnd();
@@ -107,7 +118,18 @@ namespace binderoo
 		}
 		//--------------------------------------------------------------------
 
-		BIND_INLINE bool		launched() const								{ return bLaunched != FALSE; }
+		BIND_INLINE bool		launched() const
+		{
+			return bLaunched != FALSE;
+		}
+		//--------------------------------------------------------------------
+
+		BIND_INLINE bool		succeeded() const
+		{
+			return launched() && dReturnCode == 0 && strStdError.empty();
+		}
+		//--------------------------------------------------------------------
+
 		BIND_INLINE bool		running() const
 		{
 			if( !launched() )
@@ -194,11 +216,24 @@ namespace binderoo
 
 			vecEnvironmentVariables.resize( iTotalSize );
 
-			std::sort( vecNewVariables.begin(), vecNewVariables.end() );
+			auto sortFunc = []( const binderoo::Containers< AllocatorSpace::Service >::InternalString& lhs, const binderoo::Containers< AllocatorSpace::Service >::InternalString& rhs ) -> bool
+			{
+				auto tempLHS = lhs;
+				auto tempRHS = rhs;
+				std::transform( tempLHS.begin(), tempLHS.end(), tempLHS.begin(), tolower );
+				std::transform( tempRHS.begin(), tempRHS.end(), tempRHS.begin(), tolower );
+				return tempLHS < tempRHS;
+			};
+
+			std::sort( vecNewVariables.begin(), vecNewVariables.end(), sortFunc );
+
 			char* pOutput = vecEnvironmentVariables.data();
+			char* pEnd = pOutput + iTotalSize;
 			for( const Containers< AllocatorSpace::Service >::InternalString& strEnvVar : vecNewVariables )
 			{
-				strcpy_s( pOutput, (ptrdiff_t)*vecEnvironmentVariables.end() - (ptrdiff_t)pOutput, strEnvVar.data() );
+//				OutputDebugString( strEnvVar.c_str() );
+//				OutputDebugString( "\n" );
+				strcpy_s( pOutput, (ptrdiff_t)pEnd - (ptrdiff_t)pOutput, strEnvVar.data() );
 				pOutput += (int)( strEnvVar.length() + 1 );
 			}
 			*pOutput = 0;
@@ -225,36 +260,109 @@ namespace binderoo
 	};
 	//------------------------------------------------------------------------
 
-	bool compile( const Compiler& compiler, const Containers< AllocatorSpace::Service >::StringVector& vecInputFiles )
+	bool compile( const Compiler& compiler, const ModuleVersion& version, const MonitoredFolder& folder, const Containers< AllocatorSpace::Service >::StringVector& vecInputFiles )
 	{
 		if( !vecInputFiles.empty() )
 		{
-			Containers< AllocatorSpace::Service >::InternalString strTempRoot = FileUtils< AllocatorSpace::Service >::getTempDirectory();
+			Containers< AllocatorSpace::Service >::InternalString strVersionName( version.strVersionName.data(), version.strVersionName.length() );
+			Containers< AllocatorSpace::Service >::InternalString strLibraryName( folder.strClientLibraryName.data(), folder.strClientLibraryName.length() );
+			Containers< AllocatorSpace::Service >::InternalString strLibraryOutputName = strLibraryName;
+			
+			Containers< AllocatorSpace::Service >::InternalString strBinderooTemp = FileUtils< AllocatorSpace::Service >::getTempDirectory();
+			if( !FileUtils< AllocatorSpace::Service >::exists( strBinderooTemp ) || !FileUtils< AllocatorSpace::Service >::isDirectory( strBinderooTemp ) )
+			{
+				FileUtils< AllocatorSpace::Service >::createDirectory( strBinderooTemp );
+			}
 
-			Containers< AllocatorSpace::Service >::InternalString strCompilerWorkingFolder = Containers< AllocatorSpace::Service >::InternalString( compiler.strCompilerLocation.data(), compiler.strCompilerLocation.length() );
-			strCompilerWorkingFolder += "/dmd2/windows/bin";
-			Containers< AllocatorSpace::Service >::InternalString strCompilerExecutable = "\"";
-			strCompilerExecutable += strCompilerWorkingFolder;
-			strCompilerExecutable += "/dmd.exe\"";
+			strBinderooTemp += "service/";
+			if( !FileUtils< AllocatorSpace::Service >::exists( strBinderooTemp ) || !FileUtils< AllocatorSpace::Service >::isDirectory( strBinderooTemp ) )
+			{
+				FileUtils< AllocatorSpace::Service >::createDirectory( strBinderooTemp );
+			}
 
-			Containers< AllocatorSpace::Service >::InternalString strArguments = "-m64 -debug -g -op -L/DLL ";
+			if( strVersionName.length() > 0 )
+			{
+				strLibraryOutputName += "_" + strVersionName;
+				strBinderooTemp += strVersionName + "/";
+			}
+			else
+			{
+				strBinderooTemp += "__noversion__/";
+			}
+
+			if( !FileUtils< AllocatorSpace::Service >::exists( strBinderooTemp ) || !FileUtils< AllocatorSpace::Service >::isDirectory( strBinderooTemp ) )
+			{
+				FileUtils< AllocatorSpace::Service >::createDirectory( strBinderooTemp );
+			}
+
+			Containers< AllocatorSpace::Service >::InternalString strTempRoot = strBinderooTemp + strLibraryName + "/";
+			if( !FileUtils< AllocatorSpace::Service >::exists( strTempRoot ) || !FileUtils< AllocatorSpace::Service >::isDirectory( strTempRoot ) )
+			{
+				FileUtils< AllocatorSpace::Service >::createDirectory( strTempRoot );
+			}
+
+			Containers< AllocatorSpace::Service >::InternalString strCompilerExecutable = Containers< AllocatorSpace::Service >::InternalString( compiler.strCompilerLocation.data(), compiler.strCompilerLocation.length() );
+			strCompilerExecutable += "/windows/bin/dmd.exe";
+
+			Containers< AllocatorSpace::Service >::InternalString strOutput = " -of\"";
+			strOutput += strTempRoot;
+			strOutput += strLibraryOutputName;
+			strOutput += ".dll\"";
+
+			Containers< AllocatorSpace::Service >::InternalString strDeps = " -deps=\"";
+			strDeps += strTempRoot;
+			strDeps += strLibraryOutputName;
+			strDeps += ".deps\"";
+
+			Containers< AllocatorSpace::Service >::InternalString strVersions;
+			for( const DString& token : version.versionTokens )
+			{
+				strVersions += " -version=";
+				strVersions += Containers< AllocatorSpace::Service >::InternalString( token.data(), token.length() );
+			}
+
+			Containers< AllocatorSpace::Service >::InternalString strArguments = "-v -m64 -debug -g -L/DLL";
+			strArguments += strOutput;
+			strArguments += strDeps;
+			strArguments += strVersions;
 
 			for( const Containers< AllocatorSpace::Service >::InternalString& strInputFile : vecInputFiles )
 			{
-				strArguments += "\"";
+				strArguments += " \"";
 				strArguments += strInputFile;
 				strArguments += "\"";
 			}
 
 			Containers< AllocatorSpace::Service >::StringVector vecEnvironmentVariables;
 
-			vecEnvironmentVariables.push_back( Containers< AllocatorSpace::Service >::InternalString( "VCINSTALLDIR=\"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\" ) );
-			vecEnvironmentVariables.push_back( Containers< AllocatorSpace::Service >::InternalString( "LINKCMD64=\"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\bin\\amd64link.exe\"" ) );
-			vecEnvironmentVariables.push_back( Containers< AllocatorSpace::Service >::InternalString( "WindowsSdkDir=\"C:\\Program Files (x86)\\Windows Kits\\8.1\\\"" ) );
+			vecEnvironmentVariables.push_back( Containers< AllocatorSpace::Service >::InternalString( "VSINSTALLDIR=C:\\Program Files (x86)\\Microsoft Visual Studio 11.0" ) );
+			vecEnvironmentVariables.push_back( Containers< AllocatorSpace::Service >::InternalString( "VCINSTALLDIR=C:\\Program Files (x86)\\Microsoft Visual Studio 11.0\\VC" ) );
+			vecEnvironmentVariables.push_back( Containers< AllocatorSpace::Service >::InternalString( "LINKCMD64=C:\\Program Files (x86)\\Microsoft Visual Studio 11.0\\VC\\bin\\amd64\\link.exe" ) );
+			vecEnvironmentVariables.push_back( Containers< AllocatorSpace::Service >::InternalString( "WindowsSdkDir=C:\\Program Files (x86)\\Windows Kits\\8.1" ) );
+			vecEnvironmentVariables.push_back( Containers< AllocatorSpace::Service >::InternalString( "VisualStudioVersion=11.0" ) );
 
-			Process compileProcess( strCompilerExecutable, strCompilerWorkingFolder, strArguments, vecEnvironmentVariables, true );
+			Process compileProcess( strCompilerExecutable, strTempRoot, strArguments, vecEnvironmentVariables, true );
 
+			if( compileProcess.succeeded() )
+			{
+				Containers< AllocatorSpace::Service >::InternalString strOutputPath( folder.strOutputFolder.data(), folder.strOutputFolder.length() );
 
+				if( !FileUtils< AllocatorSpace::Service >::exists( strOutputPath ) || !FileUtils< AllocatorSpace::Service >::isDirectory( strOutputPath ) )
+				{
+					FileUtils< AllocatorSpace::Service >::createDirectory( strOutputPath );
+				}
+	
+				Containers< AllocatorSpace::Service >::InternalString strDLLSource = strTempRoot + strLibraryOutputName + ".dll";
+				Containers< AllocatorSpace::Service >::InternalString strPDBSource = strTempRoot + strLibraryOutputName + ".pdb";
+
+				Containers< AllocatorSpace::Service >::InternalString strDLLDest = strOutputPath + strLibraryOutputName + ".dll";
+				Containers< AllocatorSpace::Service >::InternalString strPDBDest = strOutputPath + strLibraryOutputName + ".pdb";
+
+				BOOL bCopiedPDB = CopyFile( strPDBSource.c_str(), strPDBDest.c_str(), FALSE );
+				BOOL bCopiedDLL = CopyFile( strDLLSource.c_str(), strDLLDest.c_str(), FALSE );
+
+				return !!bCopiedDLL && !!bCopiedPDB;
+			}
 		}
 
 		return false;
@@ -274,7 +382,11 @@ namespace binderoo
 		int32_t threadFunction( ThreadOSUpdateFunction threadOSUpdate );
 
 	private:
-		FileWatcher				watcher;
+		bool compileFolder( binderoo::MonitoredFolder& folder );
+
+		SharedEvent				reloadEvent;
+
+		FileWatcher*			pWatcher;
 
 		ServiceConfiguration*	pConfiguration;
 		void*					pThread;
@@ -285,7 +397,8 @@ namespace binderoo
 //----------------------------------------------------------------------------
 
 binderoo::ServiceImplementation::ServiceImplementation( ServiceConfiguration& configuration )
-	: watcher( configuration.folders )
+	: reloadEvent( "binderoo_service_reload" )
+	, pWatcher( nullptr )
 	, pConfiguration( &configuration )
 	, pThread( nullptr )
 	, bHaltExecution( false )
@@ -314,6 +427,9 @@ int32_t binderoo::ServiceImplementation::threadFunction( binderoo::ThreadOSUpdat
 {
 	bRunning = true;
 
+	pWatcher = AllocatorFunctions< AllocatorSpace::Service >::alloc< FileWatcher >( );
+	new( pWatcher ) FileWatcher( pConfiguration->folders );
+
 	std::set< MonitoredFolder* > changedFolders;
 
 	for( auto& folder : pConfiguration->folders )
@@ -326,36 +442,89 @@ int32_t binderoo::ServiceImplementation::threadFunction( binderoo::ThreadOSUpdat
 	{
 		threadOSUpdate();
 
-		if( watcher.detectFileChanges() )
+		::SleepEx( 1000, true );
+
+		if( pWatcher->detectFileChanges() )
 		{
 			changedFolders.clear();
-			const ChangedFilesVector& changedFiles = watcher.getChangedFiles();
+			const ChangedFilesVector& changedFiles = pWatcher->getChangedFiles();
+
+			bool bImportPathsChanged = false;
 
 			for( auto& changedFile : changedFiles )
 			{
 				changedFolders.insert( changedFile.pThisFolder );
+				bImportPathsChanged |= ( changedFile.pThisFolder->eType == binderoo::MonitoredFolderType::ImportsPath );
 			}
 
-			Containers< AllocatorSpace::Service >::StringVector vecAllFiles;
-
-/*			for( auto& changedFolder : changedFolders )
+			bool bCompiledAll = false;
+			if( bImportPathsChanged )
 			{
-				watcher.getAllFiles( *changedFolder, vecAllFiles );
-			}*/
-
-			for( auto& folder : pConfiguration->folders )
+				bCompiledAll = true;
+				// Recompile all
+				for( auto& folder : pConfiguration->folders )
+				{
+					bCompiledAll &= compileFolder( folder );
+				}
+			}
+			else
 			{
-				watcher.getAllFiles( folder, vecAllFiles );
+				bCompiledAll = true;
+				// Recompile only changed clients
+				for( auto& changedFolder : changedFolders )
+				{
+					bCompiledAll &= compileFolder( *changedFolder );
+				}
 			}
 
-			binderoo::compile( pConfiguration->compilers[ 0 ], vecAllFiles );
-
+			if( bCompiledAll )
+			{
+				reloadEvent.signal();
+			}
 		}
-
-		pConfiguration->sleep_thread( 0 );
 	}
 
+	bRunning = false;
+
 	return 0;
+}
+//----------------------------------------------------------------------------
+
+bool binderoo::ServiceImplementation::compileFolder( binderoo::MonitoredFolder& folder )
+{
+	if( folder.eType == binderoo::MonitoredFolderType::ClientPath )
+	{
+		bool bCompiled = true;
+
+		Containers< AllocatorSpace::Service >::StringVector vecAllFiles;
+
+		for( auto& folder : pConfiguration->folders )
+		{
+			if( folder.eType == binderoo::MonitoredFolderType::ImportsPath )
+			{
+				pWatcher->getAllFiles( folder, vecAllFiles );
+			}
+		}
+
+		pWatcher->getAllFiles( folder, vecAllFiles );
+
+		if( pConfiguration->versions.length() )
+		{
+			for( ModuleVersion& version : pConfiguration->versions )
+			{
+				bCompiled &= binderoo::compile( pConfiguration->compilers[ 0 ], version, folder, vecAllFiles );
+			}
+		}
+		else
+		{
+			ModuleVersion dummyVersion;
+			bCompiled &= binderoo::compile( pConfiguration->compilers[ 0 ], dummyVersion, folder, vecAllFiles );
+		}
+
+		return bCompiled;
+	}
+
+	return false;
 }
 //----------------------------------------------------------------------------
 
@@ -363,6 +532,8 @@ binderoo::Service::Service( ServiceConfiguration& configuration )
 	: config( configuration )
 	, pImplementation( nullptr )
 {
+	binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Service >::setup( configuration.alloc, configuration.free, configuration.calloc, configuration.realloc );
+
 	pImplementation = (ServiceImplementation*)config.alloc( sizeof( ServiceImplementation ), sizeof( size_t ) );
 	new( pImplementation ) ServiceImplementation( config );
 }
@@ -373,6 +544,8 @@ binderoo::Service::~Service()
 	pImplementation->~ServiceImplementation();
 
 	config.free( pImplementation );
+
+	binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Service >::setup( nullptr, nullptr, nullptr, nullptr );
 }
 //----------------------------------------------------------------------------
 

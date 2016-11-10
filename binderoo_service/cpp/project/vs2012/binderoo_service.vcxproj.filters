@@ -70,6 +70,9 @@
     <ClInclude Include="..\..\interface\binderoo\service.h">
       <Filter>service\interface\binderoo</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\src\binderoo\sharedevent.h">
+      <Filter>common\src\binderoo</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\filewatcher_win32.cpp">
@@ -79,6 +82,9 @@
       <Filter>service\src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\binderoo_common\cpp\src\binderoo\fileutils.cpp">
+      <Filter>common\src\binderoo</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\binderoo_common\cpp\src\binderoo\sharedevent.cpp">
       <Filter>common\src\binderoo</Filter>
     </ClCompile>
   </ItemGroup>

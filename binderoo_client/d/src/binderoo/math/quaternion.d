@@ -93,7 +93,7 @@ struct QuaternionFloat
 		float fSin = sinf( fHalf );
 		float fCos = cosf( fHalf );
 
-		return QuaternionFloat( 0.0f, 0.0f, fRoll, fCos );
+		return QuaternionFloat( 0.0f, 0.0f, fSin, fCos );
 	}
 	//------------------------------------------------------------------------
 

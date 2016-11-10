@@ -29,30 +29,43 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#if !defined( _BINDEROO_CONTAINERS_H_ )
-#define _BINDEROO_CONTAINERS_H_
+#if !defined( _BINDEROO_SHAREDEVENT_H_ )
+#define _BINDEROO_SHAREDEVENT_H_
 
 #include "binderoo/defs.h"
-
-#include "binderoo/allocator.h"
-#include <string>
-#include <vector>
-
-#include <algorithm>
+#include "binderoo/slice.h"
+#include <Windows.h>
+//----------------------------------------------------------------------------
 
 namespace binderoo
 {
-	template< AllocatorSpace eSpace >
-	struct Containers
+	class SharedEvent
 	{
-		typedef std::basic_string< char, std::char_traits< char >, binderoo::Allocator< eSpace, char > >			InternalString;
-		typedef std::basic_string< wchar_t, std::char_traits< wchar_t >, binderoo::Allocator< eSpace, wchar_t > >	InternalWString;
-		typedef std::vector< InternalString, binderoo::Allocator< eSpace, InternalString > >						StringVector;
-		typedef std::vector< char, binderoo::Allocator< eSpace, char > >											CharVector;
+	private:
+		SharedEvent();
+
+	public:
+		enum : uint32_t
+		{
+			InfiniteWait = 0xFFFFFFFF
+		};
+		//--------------------------------------------------------------------
+
+		SharedEvent( binderoo::DString strEventName );
+		~SharedEvent();
+		//--------------------------------------------------------------------
+
+		void signal();
+		bool waitOn( uint32_t uMilliseconds = InfiniteWait );
+		//--------------------------------------------------------------------
+
+	private:
+		HANDLE		hEvent;
 	};
 	//------------------------------------------------------------------------
 }
+//----------------------------------------------------------------------------
 
-#endif // !defined( _BINDEROO_CONTAINERS_H_ )
+#endif // !defined( _BINDEROO_SHAREDEVENT_H_ )
 
 //============================================================================

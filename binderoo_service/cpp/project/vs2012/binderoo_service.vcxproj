@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
@@ -11,21 +11,20 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{AE7906A6-84A5-4DEE-88AE-61632FDB5BDC}</ProjectGuid>
-    <RootNamespace>binderoo_host</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <ProjectGuid>{E5830738-CBF5-45E9-88E8-E0C1351E67C2}</ProjectGuid>
+    <RootNamespace>binderoo_service</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v110</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v110</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -40,20 +39,22 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)..\..\..\..\bin\vs2015\binderoo_host\$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)..\..\..\..\bin\vs2012\binderoo_service\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(OutDir)\intermediate\</IntDir>
+    <TargetExt>.lib</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)..\..\..\..\bin\vs2015\binderoo_host\$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)..\..\..\..\bin\vs2012\binderoo_service\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(OutDir)\intermediate\</IntDir>
+    <TargetExt>.lib</TargetExt>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>../../src/; ../../interface/; ../../../../binderoo_common/cpp/interface; ../../../../binderoo_common/cpp/src;</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>BINDEROO_EXPORT;_WINDLL;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../../src/; ../../interface/; ../../../../binderoo_common/cpp/interface; ../../../../binderoo_common/cpp/src</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>BINDEROO_EXPORT;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -66,8 +67,8 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>../../src/; ../../interface/; ../../../../binderoo_common/cpp/interface; ../../../../binderoo_common/cpp/src;</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>BINDEROO_EXPORT;_WINDLL;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../../src/; ../../interface/; ../../../../binderoo_common/cpp/interface; ../../../../binderoo_common/cpp/src</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>BINDEROO_EXPORT;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -76,21 +77,24 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\binderoo\exports.cpp" />
-    <ClCompile Include="..\..\src\binderoo\host.cpp" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\allocator.h" />
     <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\defs.h" />
     <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\functiontraits.h" />
     <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\hash.h" />
     <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\slice.h" />
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\fastdelegate\fastdelegate.h" />
     <ClInclude Include="..\..\..\..\binderoo_common\cpp\src\binderoo\containers.h" />
-    <ClInclude Include="..\..\interface\binderoo\boundfunction.h" />
-    <ClInclude Include="..\..\interface\binderoo\boundobject.h" />
-    <ClInclude Include="..\..\interface\binderoo\exports.h" />
-    <ClInclude Include="..\..\interface\binderoo\host.h" />
-    <ClInclude Include="..\..\interface\binderoo\imports.h" />
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\src\binderoo\fileutils.h" />
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\src\binderoo\sharedevent.h" />
+    <ClInclude Include="..\..\interface\binderoo\monitoredfolder.h" />
+    <ClInclude Include="..\..\interface\binderoo\service.h" />
+    <ClInclude Include="..\..\src\filewatcher.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\binderoo_common\cpp\src\binderoo\fileutils.cpp" />
+    <ClCompile Include="..\..\..\..\binderoo_common\cpp\src\binderoo\sharedevent.cpp" />
+    <ClCompile Include="..\..\src\filewatcher_win32.cpp" />
+    <ClCompile Include="..\..\src\service.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\functiontraits_vs2012.inl" />

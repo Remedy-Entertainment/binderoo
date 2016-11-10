@@ -43,16 +43,41 @@ namespace binderoo
 	template< AllocatorSpace eSpace >
 	struct FileUtils
 	{
-		static typename binderoo::Containers< eSpace >::InternalString getTempDirectory()
+		typedef typename binderoo::Containers< eSpace >::InternalString ThisInternalString;
+
+		static ThisInternalString getTempDirectory()
 		{
 			binderoo::Containers< eSpace >::InternalString strTempPath;
 			DWORD dTempPathLength = GetTempPath( 0, nullptr );
-			strTempPath.resize( dTempPathLength );
+			strTempPath.resize( dTempPathLength - 1 );
 			GetTempPath( dTempPathLength, (char*)strTempPath.data() );
 			std::replace( strTempPath.begin(), strTempPath.end(), '\\', '/' );
-			strTempPath += "binderoo";
+			strTempPath += "binderoo/";
 
 			return strTempPath;
+		}
+		//--------------------------------------------------------------------
+
+		static bool exists( const ThisInternalString& strFileOrDirectory )
+		{
+			DWORD dPathAttributes = GetFileAttributes( strFileOrDirectory.c_str() );
+
+			return dPathAttributes != INVALID_FILE_ATTRIBUTES;
+		}
+		//--------------------------------------------------------------------
+
+		static bool isDirectory( const ThisInternalString& strFileOrDirectory )
+		{
+			DWORD dPathAttributes = GetFileAttributes( strFileOrDirectory.c_str() );
+
+			return dPathAttributes != INVALID_FILE_ATTRIBUTES && ( dPathAttributes & FILE_ATTRIBUTE_DIRECTORY ) != 0;
+		}
+		//--------------------------------------------------------------------
+
+		// TODO: Make it recursive
+		static void createDirectory( const ThisInternalString& strDirectory )
+		{
+			CreateDirectory( strDirectory.c_str(), NULL );
 		}
 		//--------------------------------------------------------------------
 	};

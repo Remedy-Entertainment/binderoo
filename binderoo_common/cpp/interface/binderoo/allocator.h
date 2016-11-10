@@ -59,18 +59,68 @@ namespace binderoo
 	public:
 		static void setup( AllocatorFunc a, DeallocatorFunc d, CAllocatorFunc c, ReallocatorFunc r )
 		{
-			alloc		= a;
-			free		= d;
-			calloc		= c;
-			realloc		= r;
+			fAlloc		= a;
+			fFree		= d;
+			fCalloc		= c;
+			fRealloc	= r;
+		}
+		//--------------------------------------------------------------------
+
+		static BIND_INLINE void*	alloc( size_t objSize, size_t alignment )
+		{
+			return fAlloc ? fAlloc( objSize, alignment ) : nullptr;
+		}
+		//--------------------------------------------------------------------
+
+		// This does not construct data. It only allocates.
+		template< typename _ty >
+		static BIND_INLINE _ty*	alloc( size_t alignment = BIND_ALIGNOF( _ty ) )
+		{
+			return (_ty*)alloc( sizeof( _ty ), alignment );
+		}
+		//--------------------------------------------------------------------
+
+		template< typename _ty >
+		static BIND_INLINE _ty*	allocAndConstruct( size_t alignment = BIND_ALIGNOF( _ty ) )
+		{
+			return new( alloc( sizeof( _ty ), alignment ) ) _ty;
+		}
+		//--------------------------------------------------------------------
+
+		static BIND_INLINE void		free( void* pObj )
+		{
+			if( fFree ) fFree( pObj );
+		}
+		//--------------------------------------------------------------------
+
+		template< typename _ty >
+		static BIND_INLINE void		destructAndFree( _ty* pObj )
+		{
+			if( pObj )
+			{
+				pObj->~_ty();
+				free( pObj );
+			}
+		}
+		//--------------------------------------------------------------------
+
+		static BIND_INLINE void*	calloc( size_t objCount, size_t objSize, size_t alignment )
+		{
+			return fCalloc ? fCalloc( objCount, objSize, alignment ) : nullptr;
+		}
+		//--------------------------------------------------------------------
+
+		static BIND_INLINE void*	realloc( void* pObj, size_t newObjSize, size_t alignment )
+		{
+			return fRealloc ? fRealloc( pObj, newObjSize, alignment ) : nullptr;
 		}
 		//--------------------------------------------------------------------
 
 	protected:
-		static AllocatorFunc			alloc;
-		static DeallocatorFunc			free;
-		static CAllocatorFunc			calloc;
-		static ReallocatorFunc			realloc;
+		static AllocatorFunc			fAlloc;
+		static DeallocatorFunc			fFree;
+		static CAllocatorFunc			fCalloc;
+		static ReallocatorFunc			fRealloc;
 	};
 	//------------------------------------------------------------------------
 

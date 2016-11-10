@@ -137,6 +137,8 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 											&BoundObjectFunctions!( Type ).allocObj,
 											&BoundObjectFunctions!( Type ).deallocObj,
 											&BoundObjectFunctions!( Type ).thunkObj,
+											&BoundObjectFunctions!( Type ).serialiseObj,
+											&BoundObjectFunctions!( Type ).deserialiseObj,
 											BoundObjectFunctions!( Type ).TypeVal );
 				}
 

@@ -109,7 +109,9 @@ namespace binderoo
 		BIND_INLINE _ty&		operator[]( size_t uIndex ) const				{ return pData[ uIndex ]; }
 
 		BIND_INLINE size_t		length() const									{ return uLength; }
-		BIND_INLINE _ty*		data() const									{ return pData; }
+
+		BIND_INLINE _ty*		data()											{ return pData; }
+		BIND_INLINE const _ty*	data() const									{ return pData; }
 
 		BIND_INLINE _ty*		begin()											{ return pData; }
 		BIND_INLINE const _ty*	begin() const									{ return pData; }

@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module binderoo.math.vector;
 //----------------------------------------------------------------------------
 
-import core.simd;
+public import core.simd;
 import binderoo.math.constants;
 //----------------------------------------------------------------------------
 

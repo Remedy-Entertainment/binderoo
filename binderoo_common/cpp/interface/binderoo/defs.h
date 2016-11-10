@@ -36,6 +36,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include "fastdelegate/fastdelegate.h"
 
+#define BIND_CPP11				0
+#define BIND_MSVC2012			1
+
+#if defined( _MSC_VER ) && _MSC_VER < 1900
+	#define BIND_CPPVERSION		BIND_MSVC2012
+#else
+	#define BIND_CPPVERSION		BIND_CPP11
+#endif // C++ version checks
+
 #if defined( BINDEROO_EXPORT )
 	#define BIND_DLL			__declspec( dllexport )
 #else
@@ -47,11 +56,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define BIND_C_CALL			__cdecl
 #define BIND_C_NAMING		extern "C"
 
-#define BIND_ALIGN( x )		__declspec( align( x ) )
 #define BIND_INLINE			__forceinline
 #define BIND_NOINLINE		__declspec( noinline )
 #define BIND_ABSTRACT		abstract
 #define BIND_OVERRIDE		override
+
+#if BIND_CPPVERSION == BIND_MSVC2012
+	#define BIND_ALIGN( x )		__declspec( align( x ) )
+	#define BIND_ALIGNOF( x )	__alignof( x )
+#else // anything but VC2012
+	#define BIND_ALIGN( x )		alignas( x )
+	#define BIND_ALIGNOF( x )	alignof( x )
+#endif // BIND_CPPVERSION check
 //----------------------------------------------------------------------------
 
 #define BIND_TOSTRING_IMPL( x ) #x
@@ -60,15 +76,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define BIND_CONCAT_IMPL( a, b ) a ## b
 #define BIND_CONCAT( a, b ) BIND_CONCAT_IMPL( a, b )
 //----------------------------------------------------------------------------
-
-#define BIND_CPP11				0
-#define BIND_MSVC2012			1
-
-#if defined( _MSC_VER ) && _MSC_VER < 1900
-	#define BIND_CPPVERSION		BIND_MSVC2012
-#else
-	#define BIND_CPPVERSION		BIND_CPP11
-#endif // C++ version checks
 
 namespace binderoo
 {

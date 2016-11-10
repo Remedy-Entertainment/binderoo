@@ -27,75 +27,61 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 //----------------------------------------------------------------------------
 
-#pragma once
+#include "sharedevent.h"
+//----------------------------------------------------------------------------
 
-#if !defined( _BINDEROO_SERVICE_H_ )
-#define _BINDEROO_SERVICE_H_
-
-#include "binderoo/defs.h"
-#include "binderoo/allocator.h"
-#include "binderoo/slice.h"
-
-#include "binderoo/monitoredfolder.h"
-
-namespace binderoo
+binderoo::SharedEvent::SharedEvent()
+	: hEvent( INVALID_HANDLE_VALUE )
 {
-	enum class CompilerType : int32_t
-	{
-		DMD,
-		LDC,
-	};
-
-	struct Compiler
-	{
-		DString								strCompilerLocation;
-		DString								strLinkerLocation;
-		CompilerType						eType;
-	};
-
-	typedef fastdelegate::FastDelegate0< void > ThreadOSUpdateFunction;
-	typedef fastdelegate::FastDelegate1< ThreadOSUpdateFunction, int32_t >	ThreadRunFunction;
-
-	typedef void*(* ThreadCreateFunction )( ThreadRunFunction );
-	typedef void(* ThreadSleepFunction )( size_t );
-	typedef void(* ThreadDestroyFunction )( void* );
-
-	struct ServiceConfiguration
-	{
-		Slice< Compiler >					compilers;
-		Slice< MonitoredFolder >			folders;
-
-		CompilerType						eCurrentCompiler;
-
-		AllocatorFunc						alloc;
-		DeallocatorFunc						free;
-		CAllocatorFunc						calloc;
-		ReallocatorFunc						realloc;
-
-		UnalignedAllocatorFunc				unaligned_alloc;
-		UnalignedDeallocatorFunc			unaligned_free;
-
-		ThreadCreateFunction				create_thread;
-		ThreadSleepFunction					sleep_thread;
-		ThreadDestroyFunction				destroy_thread;
-	};
-
-	class ServiceImplementation;
-
-	class Service
-	{
-	public:
-		Service( ServiceConfiguration& configuration );
-		~Service();
-
-	private:
-		ServiceConfiguration		config;
-		ServiceImplementation*		pImplementation;
-	};
-	//------------------------------------------------------------------------
 }
 //----------------------------------------------------------------------------
 
-#endif // !defined( _BINDEROO_SERVICE_H_ )
+binderoo::SharedEvent::SharedEvent( binderoo::DString strEventName )
+	: hEvent( INVALID_HANDLE_VALUE )
+{
+	HANDLE hResolved = OpenEvent( EVENT_ALL_ACCESS, FALSE, strEventName.data() );
+
+	if( hResolved == NULL )
+	{
+		hResolved = CreateEvent( NULL, FALSE, FALSE, strEventName.data() );
+	}
+
+	if( hResolved != NULL )
+	{
+		hEvent = hResolved;
+	}
+}
+//----------------------------------------------------------------------------
+
+binderoo::SharedEvent::~SharedEvent()
+{
+	if( hEvent != INVALID_HANDLE_VALUE )
+	{
+		CloseHandle( hEvent );
+	}
+}
+//----------------------------------------------------------------------------
+
+void binderoo::SharedEvent::signal()
+{
+	if( hEvent != INVALID_HANDLE_VALUE )
+	{
+		SetEvent( hEvent );
+	}
+}
+//----------------------------------------------------------------------------
+
+bool binderoo::SharedEvent::waitOn( uint32_t uMilliseconds )
+{
+	if( hEvent != INVALID_HANDLE_VALUE )
+	{
+		DWORD dWaitTime = (DWORD)uMilliseconds;
+
+		return WaitForSingleObject( hEvent, dWaitTime ) == WAIT_OBJECT_0;
+	}
+
+	return false;
+}
+//----------------------------------------------------------------------------
 
 //============================================================================

@@ -30,31 +30,96 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "filewatcher.h"
 
 #include <Windows.h>
+#include <algorithm>
 //----------------------------------------------------------------------------
+
+#define FILE_NOTIFY_SERVICE_WATCH ( FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION | FILE_NOTIFY_CHANGE_FILE_NAME )
+#define FILE_NOTIFY_SERVICE_DIROPEN ( FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED )
 
 namespace
 {
-	void getAllFiles( const binderoo::Containers< binderoo::AllocatorSpace::Service >::InternalString& strDirectory, binderoo::Containers< binderoo::AllocatorSpace::Service >::StringVector& vecOutput )
+	bool matchesExtensions( const binderoo::Containers< binderoo::AllocatorSpace::Service >::InternalString& strFilename, binderoo::DString extensions )
+	{
+		bool bAnyMatch = extensions.length() == 0;
+
+		size_t uExtensionStart = 0;
+		size_t uExtensionEnd = 0;
+
+		for( size_t uExtensionsPos = 0; !bAnyMatch && uExtensionsPos <= extensions.length(); ++uExtensionsPos )
+		{
+			if( uExtensionsPos == extensions.length()
+				|| extensions.data()[ uExtensionsPos ] == ';' )
+			{
+				uExtensionEnd = uExtensionsPos;
+
+				if( uExtensionStart != uExtensionEnd )
+				{
+					binderoo::DString strThisExtension( extensions.data() + uExtensionStart, uExtensionEnd - uExtensionStart );
+
+					const char* pExtensionPos = strThisExtension.data();
+					const char* pFilenameEnd = strFilename.c_str() + strFilename.length();
+					const char* pFilenamePos = pFilenameEnd - strThisExtension.length();
+
+					bool bMatch = true;
+					while( bMatch && pFilenamePos != pFilenameEnd )
+					{
+						bMatch &= ( tolower( *pExtensionPos ) == tolower( *pFilenamePos ) );
+						++pExtensionPos;
+						++pFilenamePos;
+					}
+
+					bAnyMatch |= bMatch;
+				}
+
+				uExtensionStart = uExtensionsPos + 1;
+				uExtensionEnd = uExtensionStart;
+				uExtensionsPos = uExtensionStart;
+			}
+		}
+
+		return bAnyMatch;
+	}
+	//------------------------------------------------------------------------
+
+	bool matchesExtensions( const binderoo::Containers< binderoo::AllocatorSpace::Service >::InternalString& strFilename, const binderoo::Containers< binderoo::AllocatorSpace::Service >::InternalString& strExtensions )
+	{
+		return matchesExtensions( strFilename, binderoo::DString( strExtensions.data(), strExtensions.length() ) );
+	}
+	//------------------------------------------------------------------------
+
+	void getAllFiles(	const binderoo::Containers< binderoo::AllocatorSpace::Service >::InternalString& strDirectory,
+						const binderoo::Containers< binderoo::AllocatorSpace::Service >::InternalString& strExtensions,
+						binderoo::Containers< binderoo::AllocatorSpace::Service >::StringVector& vecOutput )
 	{
 		WIN32_FIND_DATA findData;
 		ZeroMemory( &findData, sizeof( WIN32_FIND_DATA ) );
 
-		HANDLE hFindHandle = FindFirstFile( strDirectory.c_str(), &findData );
+		binderoo::Containers< binderoo::AllocatorSpace::Service >::InternalString strDirectorySearch = "\\\\?\\";
+		strDirectorySearch += strDirectory;
+		strDirectorySearch += "*";
+
+		HANDLE hFindHandle = FindFirstFile( strDirectorySearch.c_str(), &findData );
 		BOOL bSuccess = hFindHandle != INVALID_HANDLE_VALUE;
 
 		while( bSuccess != FALSE )
 		{
-			binderoo::Containers< binderoo::AllocatorSpace::Service >::InternalString strFoundFile = strDirectory;
-			strFoundFile += "/";
-			strFoundFile += findData.cFileName;
+			bool bIsSkippable = ( findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) && findData.cFileName[ 0 ] == '.';
 
-			if( ( findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) != 0 )
+			if( !bIsSkippable )
 			{
-				getAllFiles( strFoundFile, vecOutput );
-			}
-			else if( ( findData.dwFileAttributes & ( FILE_ATTRIBUTE_VIRTUAL | FILE_ATTRIBUTE_DEVICE | FILE_ATTRIBUTE_TEMPORARY ) ) == 0 )
-			{
-				vecOutput.push_back( strFoundFile );
+				binderoo::Containers< binderoo::AllocatorSpace::Service >::InternalString strFoundFile = strDirectory;
+				strFoundFile += findData.cFileName;
+
+				if( ( findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) != 0 )
+				{
+					strFoundFile += "\\";
+					getAllFiles( strFoundFile, strExtensions, vecOutput );
+				}
+				else if( ( findData.dwFileAttributes & ( FILE_ATTRIBUTE_VIRTUAL | FILE_ATTRIBUTE_DEVICE | FILE_ATTRIBUTE_TEMPORARY ) ) == 0
+					&& matchesExtensions( strFoundFile, strExtensions ) )
+				{
+					vecOutput.push_back( strFoundFile );
+				}
 			}
 
 			bSuccess = FindNextFile( hFindHandle, &findData );
@@ -69,74 +134,74 @@ namespace
 }
 //----------------------------------------------------------------------------
 
-binderoo::FileWatcher::FileWatcher( binderoo::Slice< binderoo::MonitoredFolder >& folders )
+struct FileWatcherDataWin32
 {
-	monitoredFolders = folders;
-	vecFileWatchersHandles.reserve( folders.length() );
-	vecFileNotificationsHandles.reserve( folders.length() );
+	enum : DWORD { dBufferLength = 65536 };
 
-	for( auto& folder : monitoredFolders )
+	FileWatcherDataWin32()
+		: pFolder( nullptr )
+		, pWriteBuffer( buffer1 )
+		, pReadBuffer( buffer2 )
+		, hFolder( nullptr )
 	{
-		Containers< AllocatorSpace::Service >::InternalString searchPath = "\\\\?\\";
-		searchPath += Containers< AllocatorSpace::Service >::InternalString( folder.strSourceFolder.data(), folder.strSourceFolder.length() );
-
-		HANDLE hFolder = CreateFile( searchPath.c_str(), FILE_LIST_DIRECTORY, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
-		vecFileWatchersHandles.push_back( hFolder );
-
-		HANDLE hNotifier = FindFirstChangeNotification( searchPath.c_str(), TRUE, FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION );
-		vecFileNotificationsHandles.push_back( hFolder );
-
-	}
-}
-//----------------------------------------------------------------------------
-
-binderoo::FileWatcher::~FileWatcher()
-{
-	for( auto& hNotifier : vecFileNotificationsHandles )
-	{
-		FindCloseChangeNotification( hNotifier );
+		buffer1[ 0 ] = 0;
+		buffer2[ 0 ] = 0;
 	}
 
-	for( auto& hFolder : vecFileWatchersHandles )
+	char							buffer1[ dBufferLength ];
+	char							buffer2[ dBufferLength ];
+
+	binderoo::MonitoredFolder*		pFolder;
+	char*							pWriteBuffer;
+	char*							pReadBuffer;
+	DWORD							dReadBufferLength;
+	DWORD							dWriteBufferLength;
+
+	OVERLAPPED						overlappedData;
+	HANDLE							hFolder;
+
+	binderoo::ChangedFilesVector	vecChangedFiles;
+	//------------------------------------------------------------------------
+
+	void kickoffWatcher()
 	{
-		CloseHandle( hFolder );
-	}
-}
-//----------------------------------------------------------------------------
+		ZeroMemory( &overlappedData, sizeof( OVERLAPPED ) );
+		overlappedData.hEvent = this;
+		BOOL bKickedOff = ReadDirectoryChangesW( hFolder, pWriteBuffer, FileWatcherDataWin32::dBufferLength, TRUE, FILE_NOTIFY_SERVICE_WATCH, NULL, &overlappedData, &FileWatcherDataWin32::completed );
+		char messageBuffer[ 2048 ] = { 0 };
 
-bool binderoo::FileWatcher::detectFileChanges()
-{
-	const DWORD dBufferLength = 65536;
-	char buffer[ dBufferLength ];
-
-	vecCurrentChangedFiles.clear();
-
-	const DWORD dOriginalWait = 10;
-	const DWORD dAdditionalWait = 100;
-
-	DWORD dWaitStatus = WaitForMultipleObjects( (DWORD)vecFileNotificationsHandles.size(), vecFileNotificationsHandles.data(), FALSE, dOriginalWait );
-
-	while( dWaitStatus > WAIT_OBJECT_0 && dWaitStatus < WAIT_OBJECT_0 + vecFileNotificationsHandles.size() )
-	{
-		DWORD dCurrentFolder = dWaitStatus - WAIT_OBJECT_0;
-		MonitoredFolder& currFolder = monitoredFolders[ dCurrentFolder ];
-
-		DWORD dBytesRead = 0;
-		BOOL bRead = ReadDirectoryChangesW( vecFileWatchersHandles[ dCurrentFolder ], buffer, dBufferLength, TRUE, FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION, &dBytesRead, NULL, NULL );
-
-		while( bRead != FALSE )
+		if( !bKickedOff )
 		{
-			char* pCurrBuffer = buffer;
+			DWORD dError = GetLastError();
+			FormatMessage( FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, dError, 0, messageBuffer, 2048, nullptr );
+			int foo = 1;
+		}
+
+	}
+	//------------------------------------------------------------------------
+
+private:
+	void parseWatchedData()
+	{
+		if( dReadBufferLength > 0 )
+		{
+			char* pCurrBuffer = pReadBuffer;
 			while( pCurrBuffer != nullptr )
 			{
 				FILE_NOTIFY_INFORMATION* pInformation = (FILE_NOTIFY_INFORMATION*)pCurrBuffer;
-				int strLength = WideCharToMultiByte( CP_ACP, MB_PRECOMPOSED, pInformation->FileName, pInformation->FileNameLength / sizeof( WCHAR ), NULL, 0, NULL, NULL );
+				int strLength = WideCharToMultiByte( CP_ACP, 0, pInformation->FileName, pInformation->FileNameLength / sizeof( WCHAR ), NULL, 0, NULL, NULL );
 
-				vecCurrentChangedFiles.push_back( ChangedFiles() );
-				ChangedFiles& changedFile = vecCurrentChangedFiles.back();
-				changedFile.pThisFolder = &currFolder;
-				changedFile.strChangedFile.resize( strLength );
-				WideCharToMultiByte( CP_ACP, MB_PRECOMPOSED, pInformation->FileName, pInformation->FileNameLength / sizeof( WCHAR ), (LPSTR)changedFile.strChangedFile.data(), strLength, NULL, NULL );
+				binderoo::Containers< binderoo::AllocatorSpace::Service >::InternalString strChangedFile;
+				strChangedFile.resize( strLength );
+				WideCharToMultiByte( CP_ACP, 0, pInformation->FileName, pInformation->FileNameLength / sizeof( WCHAR ), (LPSTR)strChangedFile.data(), strLength, NULL, NULL );
+
+				if( matchesExtensions( strChangedFile, pFolder->strSourceExtensions ) )
+				{
+					vecChangedFiles.push_back( binderoo::ChangedFiles() );
+					binderoo::ChangedFiles& changedFile = vecChangedFiles.back();
+					changedFile.pThisFolder = pFolder;
+					changedFile.strChangedFile = strChangedFile;
+				}
 
 				if( pInformation->NextEntryOffset > 0 )
 				{
@@ -148,11 +213,100 @@ bool binderoo::FileWatcher::detectFileChanges()
 				}
 			}
 
-			bRead = ReadDirectoryChangesW( vecFileWatchersHandles[ dCurrentFolder ], buffer, dBufferLength, TRUE, FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION, &dBytesRead, NULL, NULL );
+			dReadBufferLength = 0;
 		}
+	}
+	//------------------------------------------------------------------------
 
-		FindNextChangeNotification( vecFileNotificationsHandles[ dCurrentFolder ] );
-		dWaitStatus = WaitForMultipleObjects( (DWORD)vecFileNotificationsHandles.size(), vecFileNotificationsHandles.data(), FALSE, dAdditionalWait );
+public:
+	static VOID CALLBACK completed( DWORD dwErrorCode, DWORD dwBytesTransferred, LPOVERLAPPED lpOverlapped )
+	{
+		FileWatcherDataWin32* pData = (FileWatcherDataWin32*)lpOverlapped->hEvent;
+
+		char* pTemp = pData->pReadBuffer;
+		pData->pReadBuffer = pData->pWriteBuffer;
+		pData->pWriteBuffer = pTemp;
+		pData->dReadBufferLength = dwBytesTransferred;
+
+		pData->kickoffWatcher();
+		pData->parseWatchedData();
+	}
+	//------------------------------------------------------------------------
+
+};
+//----------------------------------------------------------------------------
+
+
+binderoo::FileWatcher::FileWatcher( binderoo::Slice< binderoo::MonitoredFolder >& folders )
+{
+	monitoredFolders = folders;
+	vecFileWatchersHandles.reserve( folders.length() );
+
+	for( auto& folder : monitoredFolders )
+	{
+		Containers< AllocatorSpace::Service >::InternalString searchPath = "\\\\?\\";
+		searchPath += Containers< AllocatorSpace::Service >::InternalString( folder.strSourceFolder.data(), folder.strSourceFolder.length() );
+		std::replace( searchPath.begin(), searchPath.end(), '/', '\\' );
+
+		int iWideLength = MultiByteToWideChar( CP_ACP, 0, searchPath.data(), (int)searchPath.length(), NULL, 0 );
+		Containers< AllocatorSpace::Service >::InternalWString wSearchPath( iWideLength, '-' );
+		MultiByteToWideChar( CP_ACP, 0, searchPath.data(), (int)searchPath.length(), (wchar_t*)wSearchPath.data(), (int)wSearchPath.length() );
+
+		FileWatcherDataWin32* pData = AllocatorFunctions< AllocatorSpace::Service >::allocAndConstruct< FileWatcherDataWin32 >();
+
+		pData->pFolder = &folder;
+		pData->hFolder = CreateFileW( wSearchPath.c_str(), FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_NOTIFY_SERVICE_DIROPEN, NULL );
+		pData->kickoffWatcher();
+
+/*		char messageBuffer[ 2048 ] = { 0 };
+
+		if( hFolder == INVALID_HANDLE_VALUE )
+		{
+			DWORD dError = GetLastError();
+			FormatMessage( FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, dError, 0, messageBuffer, 2048, nullptr );
+		}*/
+		vecFileWatchersHandles.push_back( pData );
+
+	}
+
+}
+//----------------------------------------------------------------------------
+
+binderoo::FileWatcher::~FileWatcher()
+{
+	for( void* pData : vecFileWatchersHandles )
+	{
+		FileWatcherDataWin32* watcherData = (FileWatcherDataWin32*)pData;
+		CancelIo( watcherData->hFolder );
+	}
+
+	for( void* pData : vecFileWatchersHandles )
+	{
+		FileWatcherDataWin32* watcherData = (FileWatcherDataWin32*)pData;
+		while( !HasOverlappedIoCompleted( &watcherData->overlappedData ) )
+		{
+			SleepEx( 10, TRUE );
+		}
+		CloseHandle( watcherData->hFolder );
+
+		AllocatorFunctions< AllocatorSpace::Service >::destructAndFree( watcherData );
+	}
+}
+//----------------------------------------------------------------------------
+
+bool binderoo::FileWatcher::detectFileChanges()
+{
+	vecCurrentChangedFiles.clear();
+
+	for( void* pData : vecFileWatchersHandles )
+	{
+		FileWatcherDataWin32& watcherData = *(FileWatcherDataWin32*)pData;
+
+		if( watcherData.vecChangedFiles.size() > 0 )
+		{
+			vecCurrentChangedFiles.insert( vecCurrentChangedFiles.end(), watcherData.vecChangedFiles.begin(), watcherData.vecChangedFiles.end() );
+			watcherData.vecChangedFiles.clear();
+		}
 	}
 
 	return !vecCurrentChangedFiles.empty();
@@ -170,9 +324,18 @@ void binderoo::FileWatcher::getAllFiles( Containers< AllocatorSpace::Service >::
 
 void binderoo::FileWatcher::getAllFiles( const MonitoredFolder& folder, Containers< AllocatorSpace::Service >::StringVector& vecOutput )
 {
-	Containers< AllocatorSpace::Service >::InternalString strFolder = "\\\\?\\";
-	strFolder += Containers< AllocatorSpace::Service >::InternalString( folder.strSourceFolder.data(), folder.strSourceFolder.length() );
-	::getAllFiles( strFolder, vecOutput );
+	getAllFiles( Containers< AllocatorSpace::Service >::InternalString( folder.strSourceFolder.data(), folder.strSourceFolder.length() ),
+				Containers< AllocatorSpace::Service >::InternalString( folder.strSourceExtensions.data(), folder.strSourceExtensions.length() ),
+				vecOutput );
+}
+//----------------------------------------------------------------------------
+
+void binderoo::FileWatcher::getAllFiles( const Containers< AllocatorSpace::Service >::InternalString& strFolder, const Containers< AllocatorSpace::Service >::InternalString& strExtensions, Containers< AllocatorSpace::Service >::StringVector& vecOutput )
+{
+	Containers< AllocatorSpace::Service >::InternalString strFixedUpFolder( strFolder );
+	std::replace( strFixedUpFolder.begin(), strFixedUpFolder.end(), '/', '\\' );
+
+	::getAllFiles( strFixedUpFolder, strExtensions, vecOutput );
 }
 //----------------------------------------------------------------------------
 

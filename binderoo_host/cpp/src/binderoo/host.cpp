@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "binderoo/exports.h"
 #include "binderoo/hash.h"
 #include "binderoo/imports.h"
+#include "binderoo/sharedevent.h"
 #include "binderoo/slice.h"
 
 #include <unordered_map>
@@ -45,12 +46,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Windows.h>
 //----------------------------------------------------------------------------
 
-binderoo::AllocatorFunc				binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Host >::alloc		= nullptr;
-binderoo::DeallocatorFunc			binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Host >::free		= nullptr;
-binderoo::CAllocatorFunc			binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Host >::calloc		= nullptr;
-binderoo::ReallocatorFunc			binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Host >::realloc		= nullptr;
+binderoo::AllocatorFunc				binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Host >::fAlloc		= nullptr;
+binderoo::DeallocatorFunc			binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Host >::fFree		= nullptr;
+binderoo::CAllocatorFunc			binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Host >::fCalloc		= nullptr;
+binderoo::ReallocatorFunc			binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Host >::fRealloc	= nullptr;
 
-binderoo::Host*	binderoo::Host::pActiveHost				= nullptr;
+binderoo::Host*	binderoo::Host::pActiveHost																		= nullptr;
+//----------------------------------------------------------------------------
 
 namespace binderoo
 {
@@ -65,18 +67,21 @@ namespace binderoo
 	typedef void					( BIND_C_CALL *DestroyObjectByNamePtr )									( DString, void* );
 	typedef void					( BIND_C_CALL *DestroyObjectByHashPtr )									( uint64_t, void* );
 	typedef const char*				( BIND_C_CALL *GenerateBindingDeclarationsForAllObjectsPtr )			( UnalignedAllocatorFunc allocator );
+	//------------------------------------------------------------------------
 
 	enum class DynamicLibStatus : int
 	{
 		NotLoaded,
 		LoadFailed,
 		CoreInterfaceNotFound,
+		Unloaded,
 
 		Ready,
 
 		Max,
 		Min = 0
 	};
+	//------------------------------------------------------------------------
 
 	struct HostDynamicLib
 	{
@@ -93,6 +98,7 @@ namespace binderoo
 			, generateCPPStyleBindingDeclarationsForAllObjects( nullptr )
 		{
 		}
+		//--------------------------------------------------------------------
 
 		InternalString									strName;
 		InternalString									strPath;
@@ -112,6 +118,49 @@ namespace binderoo
 	};
 	//------------------------------------------------------------------------
 
+	template< typename _ty >
+	struct HostBinding
+	{
+		typedef typename _ty BoundType;
+
+		HostBinding()
+			: pLibrary( nullptr )
+			, pObject( nullptr )
+			, uSearchHash( 0 )
+		{
+		}
+		//--------------------------------------------------------------------
+
+		BIND_INLINE bool operator==( const BoundType* pRHS ) const				{ return pObject == pRHS; }
+		BIND_INLINE bool operator==( const uint64_t RHS ) const					{ return uSearchHash == RHS; }
+		//--------------------------------------------------------------------
+
+		HostDynamicLib*									pLibrary;
+		BoundType*										pObject;
+		uint64_t										uSearchHash;
+	};
+	//------------------------------------------------------------------------
+
+	typedef HostBinding< BoundFunction >																	HostBoundFunction;
+	typedef HostBinding< BoundObject >																		HostBoundObject;
+	//------------------------------------------------------------------------
+
+	struct HostImportedObjectInstance
+	{
+		HostImportedObjectInstance()
+			: pInstance( nullptr )
+		{
+		}
+		//--------------------------------------------------------------------
+
+		BIND_INLINE bool operator==( const ImportedBase* pRHS ) const			{ return pInstance == pRHS; }
+		//--------------------------------------------------------------------
+
+		InternalString									strReloadData;
+		ImportedBase*									pInstance;
+	};
+	//------------------------------------------------------------------------
+
 	class HostImplementation
 	{
 	public:
@@ -128,50 +177,70 @@ namespace binderoo
 		typedef std::unordered_map< BoundFunction::Hashes, size_t, FunctionMapHasher, FunctionMapComparer, FunctionMapAllocator >	FunctionMap;
 
 		typedef std::vector< HostDynamicLib, Allocator< AllocatorSpace::Host, HostDynamicLib > >			DynamicLibVector;
+		typedef std::vector< HostBoundFunction, Allocator< AllocatorSpace::Host, HostBoundFunction > >		HostBoundFunctionVector;
+		typedef std::vector< HostBoundObject, Allocator< AllocatorSpace::Host, HostBoundObject > >			HostBoundObjectVector;
+
+		typedef std::vector< binderoo::ImportedBase*, binderoo::Allocator< AllocatorSpace::Host, binderoo::ImportedBase* > > ImportedFunctionVector;
+		typedef std::vector< HostImportedObjectInstance, binderoo::Allocator< AllocatorSpace::Host, HostImportedObjectInstance > > ImportedObjectVector;
 		//--------------------------------------------------------------------
 
-		HostImplementation( HostConfiguration& config )
-			: configuration( config )
-		{
-			collectExports();
-			collectDynamicLibraries();
-		}
+		HostImplementation( HostConfiguration& config );
 		//--------------------------------------------------------------------
 
-		void					collectExports();
-		void					collectDynamicLibraries();
-
-		void					loadDynamicLibraries();
-		bool					loadDynamicLibrary( HostDynamicLib& lib );
+		bool						checkForReloads();
+		void						performReloads();
 		//--------------------------------------------------------------------
 
-		void					registerImportedClassInstance( ImportedBase* pInstance );
-		void					deregisterImportedClassInstance( ImportedBase* pInstance );
-
-		void					registerImportedFunction( ImportedBase* pInstance );
-		void					deregisterImportedFunction( ImportedBase* pInstance );
+		void						saveObjectData();
 		//--------------------------------------------------------------------
 
-		void*					createImportedClass( const char* pName );
-		bool					destroyImportedClass( const char* pName, void* pObject );
+		void						performLoad();
 		//--------------------------------------------------------------------
 
-		const BoundFunction*	getImportedFunctionDetails( const char* pName ) const;
+		void						collectExports();
+		void						collectDynamicLibraries();
+		void						collectBoundFunctions();
+		void						collectBoundObjects();
 		//--------------------------------------------------------------------
 
-		const char*				generateCPPStyleBindingDeclarationsForAllObjects();
+		void						loadDynamicLibraries();
+		bool						loadDynamicLibrary( HostDynamicLib& lib );
+		//--------------------------------------------------------------------
+
+		void						registerImportedClassInstance( ImportedBase* pInstance );
+		void						deregisterImportedClassInstance( ImportedBase* pInstance );
+
+		void						registerImportedFunction( ImportedBase* pInstance );
+		void						deregisterImportedFunction( ImportedBase* pInstance );
+		//--------------------------------------------------------------------
+
+		void*						createImportedClass( const char* pName );
+		bool						destroyImportedClass( const char* pName, void* pObject );
+		//--------------------------------------------------------------------
+
+		const HostBoundFunction*	getImportedFunctionDetails( const char* pName ) const;
+		const HostBoundObject*		getImportedObjectDetails( const char* pName ) const;
+		//--------------------------------------------------------------------
+
+		const char*					generateCPPStyleBindingDeclarationsForAllObjects();
 		//--------------------------------------------------------------------
 
 	private:
-		HostConfiguration&		configuration;
+		HostConfiguration&			configuration;
 
-		FunctionMap				mapExportedFunctionIndices;
-		FunctionVector			vecExportedFunctions;
+		SharedEvent					reloadEvent;
 
-		FunctionMap				mapImportedFunctionIndices;
-		FunctionVector			vecImportedFunctions;
+		FunctionMap					mapExportedFunctionIndices;
+		FunctionVector				vecExportedFunctions;
 
-		DynamicLibVector		vecDynamicLibs;
+		DynamicLibVector			vecDynamicLibs;
+		HostBoundFunctionVector		vecBoundFunctions;
+		HostBoundObjectVector		vecBoundObjects;
+
+		ImportedFunctionVector		vecImportFunctionInstances;
+		ImportedObjectVector		vecImportClassInstances;
+
+		bool						bReloadLibs;
 	};
 	//------------------------------------------------------------------------
 }
@@ -197,6 +266,18 @@ binderoo::Host::~Host()
 	pActiveHost = nullptr;
 
 	configuration.free( pImplementation );
+}
+//----------------------------------------------------------------------------
+
+bool binderoo::Host::checkForReloads()
+{
+	return pImplementation->checkForReloads();
+}
+//----------------------------------------------------------------------------
+
+void binderoo::Host::performReloads()
+{
+	pImplementation->performReloads();
 }
 //----------------------------------------------------------------------------
 
@@ -236,15 +317,61 @@ bool binderoo::Host::destroyImportedClass( const char* pName, void* pObject )
 }
 //--------------------------------------------------------------------
 
-const binderoo::BoundFunction* binderoo::Host::getImportedFunctionDetails( const char* pName ) const
-{
-	return pImplementation->getImportedFunctionDetails( pName );
-}
-//--------------------------------------------------------------------
-
 const char* binderoo::Host::generateCPPStyleBindingDeclarationsForAllObjects()
 {
 	return pImplementation->generateCPPStyleBindingDeclarationsForAllObjects();
+}
+//----------------------------------------------------------------------------
+//----------------------------------------------------------------------------
+
+// HostImplementation
+//----------------------------------------------------------------------------
+
+binderoo::HostImplementation::HostImplementation( HostConfiguration& config )
+	: configuration( config )
+	, reloadEvent( "binderoo_service_reload" )
+	, bReloadLibs( false )
+{
+	collectExports();
+}
+//----------------------------------------------------------------------------
+
+bool binderoo::HostImplementation::checkForReloads()
+{
+	bReloadLibs |= reloadEvent.waitOn( 0 );
+	return bReloadLibs;
+}
+//----------------------------------------------------------------------------
+
+void binderoo::HostImplementation::performReloads()
+{
+	if( bReloadLibs )
+	{
+		bReloadLibs = false;
+	}
+}
+//----------------------------------------------------------------------------
+
+void binderoo::HostImplementation::saveObjectData()
+{
+	for( HostImportedObjectInstance& obj : vecImportClassInstances )
+	{
+		const HostBoundObject* pObjDescriptor = (const HostBoundObject*)obj.pInstance->pObjectDescriptor;
+//		obj.strReloadData = pObjDescriptor->pObject->;
+	}
+}
+//----------------------------------------------------------------------------
+
+void binderoo::HostImplementation::performLoad()
+{
+	vecDynamicLibs.clear();
+	vecBoundFunctions.clear();
+	vecBoundObjects.clear();
+
+	collectDynamicLibraries();
+	collectBoundFunctions();
+	collectBoundObjects();
+
 }
 //----------------------------------------------------------------------------
 
@@ -343,6 +470,72 @@ void binderoo::HostImplementation::collectDynamicLibraries()
 }
 //----------------------------------------------------------------------------
 
+void binderoo::HostImplementation::collectBoundFunctions()
+{
+	size_t uReserveSize = 0;
+
+	for( auto& lib : vecDynamicLibs )
+	{
+		binderoo::Slice< binderoo::BoundFunction > exportedFunctions;
+		lib.getExportedFunctions( &exportedFunctions );
+
+		uReserveSize += exportedFunctions.length();
+	}
+
+	vecBoundFunctions.reserve( uReserveSize );
+
+
+	for( auto& lib : vecDynamicLibs )
+	{
+		binderoo::Slice< binderoo::BoundFunction > exportedFunctions;
+		lib.getExportedFunctions( &exportedFunctions );
+
+		for( auto& exportedFunc : exportedFunctions )
+		{
+			HostBoundFunction func;
+			func.pLibrary = &lib;
+			func.pObject = &exportedFunc;
+			func.uSearchHash = exportedFunc.functionHashes.uFunctionNameHash;
+
+			vecBoundFunctions.push_back( func );
+		}
+	}
+
+}
+//----------------------------------------------------------------------------
+
+void binderoo::HostImplementation::collectBoundObjects()
+{
+	size_t uReserveSize = 0;
+
+	for( auto& lib : vecDynamicLibs )
+	{
+		binderoo::Slice< binderoo::BoundObject > exportedObjects;
+		lib.getExportedObjects( &exportedObjects );
+
+		uReserveSize += exportedObjects.length();
+	}
+
+	vecBoundObjects.reserve( uReserveSize );
+
+	for( auto& lib : vecDynamicLibs )
+	{
+		binderoo::Slice< binderoo::BoundObject > exportedObjects;
+		lib.getExportedObjects( &exportedObjects );
+
+		for( auto& exportedObject : exportedObjects )
+		{
+			HostBoundObject obj;
+			obj.pLibrary = &lib;
+			obj.pObject = &exportedObject;
+			obj.uSearchHash = exportedObject.uFullyQualifiedNameHash;
+
+			vecBoundObjects.push_back( obj );
+		}
+	}
+}
+//----------------------------------------------------------------------------
+
 bool binderoo::HostImplementation::loadDynamicLibrary( binderoo::HostDynamicLib& lib )
 {
 	InternalString strTempPath;
@@ -419,28 +612,58 @@ bool binderoo::HostImplementation::loadDynamicLibrary( binderoo::HostDynamicLib&
 
 void binderoo::HostImplementation::registerImportedClassInstance( binderoo::ImportedBase* pInstance )
 {
+	const HostBoundObject* pObject = getImportedObjectDetails( pInstance->pSymbol );
+
+	if( pObject )
+	{
+		pInstance->pObjectDescriptor = (void*)pObject;
+
+		HostImportedObjectInstance objInstance;
+		objInstance.pInstance = pInstance;
+
+		vecImportClassInstances.push_back( objInstance );
+	}
 }
 //----------------------------------------------------------------------------
 
 void binderoo::HostImplementation::deregisterImportedClassInstance( binderoo::ImportedBase* pInstance )
 {
+	// VS2012 was having issues with std::find and a lambda, so the comparison is in the type now...
+	auto found = std::find( vecImportClassInstances.begin(), vecImportClassInstances.end(), pInstance );
+
+	if( found != vecImportClassInstances.end() )
+	{
+		found->pInstance->pObjectDescriptor = nullptr;
+
+		vecImportClassInstances.erase( found );
+	}
 }
 //----------------------------------------------------------------------------
 
 void binderoo::HostImplementation::registerImportedFunction( binderoo::ImportedBase* pInstance )
 {
-	const BoundFunction* pFunction = getImportedFunctionDetails( pInstance->pSymbol );
+	const HostBoundFunction* pFunction = getImportedFunctionDetails( pInstance->pSymbol );
 
 	if( pFunction )
 	{
-		pInstance->pObjectInstance		= (void*)pFunction->pFunction;
+		pInstance->pObjectInstance		= (void*)pFunction->pObject->pFunction;
 		pInstance->pObjectDescriptor		= (void*)pFunction;
+
+		vecImportFunctionInstances.push_back( pInstance );
 	}
 }
 //----------------------------------------------------------------------------
 
 void binderoo::HostImplementation::deregisterImportedFunction( binderoo::ImportedBase* pInstance )
 {
+	auto found = std::find( vecImportFunctionInstances.begin(), vecImportFunctionInstances.end(), pInstance );
+	if( found != vecImportFunctionInstances.end() )
+	{
+		vecImportFunctionInstances.erase( found );
+
+		pInstance->pObjectDescriptor = nullptr;
+		pInstance->pObjectInstance = nullptr;
+	}
 }
 //----------------------------------------------------------------------------
 
@@ -489,24 +712,39 @@ bool binderoo::HostImplementation::destroyImportedClass( const char* pName, void
 }
 //----------------------------------------------------------------------------
 
-const binderoo::BoundFunction* binderoo::HostImplementation::getImportedFunctionDetails( const char* pName ) const
+const binderoo::HostBoundFunction* binderoo::HostImplementation::getImportedFunctionDetails( const char* pName ) const
 {
-	for( auto& lib : vecDynamicLibs )
-	{
-		binderoo::Slice< binderoo::BoundFunction > exportedFunctions;
-		lib.getExportedFunctions( &exportedFunctions );
+	uint64_t uNameHash = fnv1a_64( pName, strlen( pName ) );
 
-		for( auto& exportedFunc : exportedFunctions )
-		{
-			if( strcmp( exportedFunc.strFunctionName.data(), pName ) == 0 )
-			{
-				return &exportedFunc;
-			}
-		}
+	// VS2012 was having issues with std::find and a lambda, so the comparison is in the type now...
+	auto found = std::find( vecBoundFunctions.begin(), vecBoundFunctions.end(), uNameHash );
+
+	if( found != vecBoundFunctions.end() )
+	{
+		// The return of my most hated operation - dereference the iterator to get the address of the object...
+		return &*found;
 	}
 
 	return nullptr;
 }
+//----------------------------------------------------------------------------
+
+const binderoo::HostBoundObject* binderoo::HostImplementation::getImportedObjectDetails( const char* pName ) const
+{
+	uint64_t uNameHash = fnv1a_64( pName, strlen( pName ) );
+
+	// VS2012 was having issues with std::find and a lambda, so the comparison is in the type now...
+	auto found = std::find( vecBoundObjects.begin(), vecBoundObjects.end(), uNameHash );
+
+	if( found != vecBoundObjects.end() )
+	{
+		// The return of my most hated operation - dereference the iterator to get the address of the object...
+		return &*found;
+	}
+
+	return nullptr;
+}
+//----------------------------------------------------------------------------
 //----------------------------------------------------------------------------
 
 const char* binderoo::HostImplementation::generateCPPStyleBindingDeclarationsForAllObjects()
@@ -556,6 +794,6 @@ const char* binderoo::HostImplementation::generateCPPStyleBindingDeclarationsFor
 	return pOutput;
 
 }
-//--------------------------------------------------------------------
+//----------------------------------------------------------------------------
 
 //============================================================================

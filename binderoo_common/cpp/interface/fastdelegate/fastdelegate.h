@@ -620,6 +620,9 @@ public:
 		SetMementoFrom(right); 
 		return *this;
 	}
+	inline bool operator ==(const DelegateMemento &right) {
+		return IsEqual(right);
+	}
 	inline bool operator <(const DelegateMemento &right) {
 		return IsLess(right);
 	}
