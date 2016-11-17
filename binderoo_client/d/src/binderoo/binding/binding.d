@@ -179,9 +179,15 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 			static if( IsStaticMember!( Type, TableStaticMember ) )
 			{
 				alias TableType = typeof( __traits( getMember, Type, TableStaticMember ) );
-				alias CTypeData = GetUDA!( Type, CTypeName );
 
-				//pragma( msg, Type.stringof ~ " " ~ TableType.stringof );
+				static if( Type.StructType == InheritanceStructType.CPP )
+				{
+					alias CTypeData = GetUDA!( Type, CTypeName );
+				}
+				else
+				{
+					alias CTypeData = GetUDA!( typeof( Type.base ), CTypeName );
+				}
 
 				// More readable, but performs slower at compile time :-(
 				/+foreach( Variable; VariableDescriptorsByUDA!( TableType, BindRawImport ) )
@@ -314,12 +320,7 @@ public void registerImportFunctions( BoundFunction[] imports )
 {
 	foreach( iCurrIndex, ref forImport; imports )
 	{
-		auto found = ( forImport.functionHashes in importFunctionIndices );
-		assert( found is null, "Hash collision with imported function! \"" ~ cast(string)forImport.strFunctionName ~ "\" with signature \"" ~ cast(string)forImport.strFunctionSignature ~ "\" <-> \"" ~ cast(string)importFunctions[ *found ].strFunctionName ~ "\" with signature \"" ~ cast(string)importFunctions[ *found ].strFunctionSignature ~ "\"" );
-
-		size_t uIndex = importFunctions.length;
-		importFunctions ~= forImport;
-		importFunctionIndices[ forImport.functionHashes ] = uIndex;
+		importFunctions[ forImport.functionHashes ] ~= forImport;
 	}
 }
 //----------------------------------------------------------------------------
@@ -499,7 +500,14 @@ public string[] generateCPPStyleBindingDeclaration( BoundFunction[] functions )
 
 public string generateCPPStyleBindingDeclarationsForAllObjects()
 {
-	string[] declarations = generateCPPStyleBindingDeclaration( importFunctions );
+	BoundFunction[] functions;
+
+	foreach( currFunctions; importFunctions.byValue )
+	{
+		functions ~= currFunctions;
+	}
+
+	string[] declarations = generateCPPStyleBindingDeclaration( functions );
 
 	import std.stdio;
 	foreach( decl; declarations )
@@ -511,7 +519,7 @@ public string generateCPPStyleBindingDeclarationsForAllObjects()
 }
 //----------------------------------------------------------------------------
 
-public const(BoundFunction)[] getAllImportedFunctions()
+public auto getAllImportedFunctions()
 {
 	return importFunctions;
 }
@@ -559,12 +567,15 @@ body*/
 
 	foreach( ref exportedFunction; exports )
 	{
-		auto foundIndex = ( exportedFunction.functionHashes in importFunctionIndices );
-		if( foundIndex !is null )
+		auto foundArray = ( exportedFunction.functionHashes in importFunctions );
+		if( foundArray !is null )
 		{
-			void** pTarget = cast(void**)importFunctions[ *foundIndex ].pFunction;
-			*pTarget = exportedFunction.pFunction;
-			importFunctions[ *foundIndex ].eResolution = BoundFunction.Resolution.Imported;
+			foreach( ref targetImport; *foundArray )
+			{
+				void** pTarget = cast(void**)targetImport.pFunction;
+				*pTarget = exportedFunction.pFunction;
+				targetImport.eResolution = BoundFunction.Resolution.Imported;
+			}
 		}
 	}
 }
@@ -641,8 +652,7 @@ export extern( C ) const(char)* generateCPPStyleBindingDeclarationsForAllObjects
 
 private:
 
-__gshared BoundFunction[]							importFunctions;
-__gshared size_t[ BoundFunction.Hashes ]			importFunctionIndices;
+__gshared BoundFunction[][ BoundFunction.Hashes ]	importFunctions;
 __gshared BoundFunction[]							exportFunctions;
 __gshared size_t[ BoundFunction.Hashes ]			exportFunctionIndices;
 __gshared BoundObject[]								exportObjects;

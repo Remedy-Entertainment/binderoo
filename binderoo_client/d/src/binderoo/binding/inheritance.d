@@ -481,8 +481,6 @@ mixin template DStructInherits( T )
 	mixin( GenerateBaseAccessors!( T ) );
 	mixin GenerateImports!( typeof( this ), T );
 
-	pragma( msg, typeof( this ).stringof ~ " vtable:\n" ~ VTable.generateTypeMixin() );
-
 	static if( T.VTable.FunctionCount > 0 )
 	{
 		//pragma( msg, typeof(this).stringof ~ " will call base constructor " ~ T.stringof ~ " with a vtable" );
@@ -512,6 +510,9 @@ mixin template DStructInherits( T )
 
 mixin template CPPStructInherits( T, NewMethods = void )
 {
+	static assert( HasUDA!( typeof( this ), CTypeName ), typeof( this ).stringof ~ " is a C++ object but does not have a @CTypeName attribute defined." );
+	static assert( HasUDA!( T, CTypeName ), typeof( this ).stringof ~ " is a C++ object but " ~ T.stringof ~ " does not have a @CTypeName attribute defined." );
+
 	enum StructType					= InheritanceStructType.CPP;
 
 	version( InheritanceInspectionDebug ) pragma( msg, "C++ Inheritance: Struct " ~ typeof( this ).stringof );
@@ -571,6 +572,8 @@ mixin template CPPStructInherits( T, NewMethods = void )
 
 mixin template CPPStructBase( NewMethods = void )
 {
+	static assert( HasUDA!( typeof( this ), CTypeName ), typeof( this ).stringof ~ " is a C++ object but does not have a @CTypeName attribute defined." );
+
 	enum StructType				= InheritanceStructType.CPP;
 
 	alias MethodDescriptor		= NewMethods;
