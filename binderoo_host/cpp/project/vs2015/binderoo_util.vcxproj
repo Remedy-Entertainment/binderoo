@@ -75,11 +75,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ProjectReference Include="..\vs2012\binderoo_host.vcxproj">
-      <Project>{ae7906a6-84a5-4dee-88ae-61632fdb5bdc}</Project>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="..\..\src\util\binderoo_util.cpp" />
     <ClCompile Include="..\..\src\util\paramhandler.cpp">
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
@@ -87,6 +82,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\util\paramhandler.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="binderoo_host.vcxproj">
+      <Project>{ae7906a6-84a5-4dee-88ae-61632fdb5bdc}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -76,6 +76,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\binderoo_common\cpp\src\binderoo\fileutils.cpp" />
+    <ClCompile Include="..\..\..\..\binderoo_common\cpp\src\binderoo\sharedevent.cpp" />
     <ClCompile Include="..\..\src\binderoo\exports.cpp" />
     <ClCompile Include="..\..\src\binderoo\host.cpp" />
   </ItemGroup>
@@ -85,7 +87,10 @@
     <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\functiontraits.h" />
     <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\hash.h" />
     <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\binderoo\slice.h" />
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\fastdelegate\fastdelegate.h" />
     <ClInclude Include="..\..\..\..\binderoo_common\cpp\src\binderoo\containers.h" />
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\src\binderoo\fileutils.h" />
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\src\binderoo\sharedevent.h" />
     <ClInclude Include="..\..\interface\binderoo\boundfunction.h" />
     <ClInclude Include="..\..\interface\binderoo\boundobject.h" />
     <ClInclude Include="..\..\interface\binderoo\exports.h" />
