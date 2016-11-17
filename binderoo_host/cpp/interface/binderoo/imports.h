@@ -66,9 +66,10 @@ namespace binderoo
 	{
 	public:
 		typedef typename _ty ThisType;
+		typedef TypeNames< ThisType > NameProvider;
 
-		BIND_INLINE ImportedClassInstance( bool bInstantiate = false )
-			: ImportedBase( TypeNames< ThisType >::getDName() )
+		BIND_INLINE ImportedClassInstance( const char* pClassName = NameProvider::getDName(), bool bInstantiate = false )
+			: ImportedBase( pClassName )
 		{
 			Host::getActiveHost()->registerImportedClassInstance( this );
 
@@ -87,7 +88,7 @@ namespace binderoo
 		}
 		//--------------------------------------------------------------------
 
-		BIND_INLINE _ty* const		operator->()									{ return getInternal(); }
+		BIND_INLINE _ty* const		operator->()								{ return getInternal(); }
 		BIND_INLINE					operator _ty* const ()						{ return getInternal(); }
 		BIND_INLINE	_ty* const		get()										{ return getInternal(); }
 		//--------------------------------------------------------------------
@@ -97,7 +98,7 @@ namespace binderoo
 
 		BIND_INLINE void			instantiate()
 		{
-			pObjectInstance = Host::getActiveHost()->createImportedClass< ThisType >();
+			pObjectInstance = Host::getActiveHost()->createImportedClass( pSymbol );
 		}
 		//--------------------------------------------------------------------
 
@@ -105,7 +106,7 @@ namespace binderoo
 		{
 			if( pObjectInstance != nullptr )
 			{
-				Host::getActiveHost()->destroyImportedClass< ThisType >( pObjectInstance );
+				Host::getActiveHost()->destroyImportedClass( pSymbol, pObjectInstance );
 			}
 		}
 		//--------------------------------------------------------------------

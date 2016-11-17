@@ -38,7 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace binderoo
 {
-	BIND_ALIGN( 16 ) struct BoundFunction
+	struct BIND_ALIGN( 16 ) BoundFunction
 	{
 		enum class Resolution : char
 		{

@@ -317,6 +317,14 @@ bool binderoo::Host::destroyImportedClass( const char* pName, void* pObject )
 }
 //--------------------------------------------------------------------
 
+const binderoo::BoundFunction* binderoo::Host::getImportedFunctionDetails( const char* pName ) const
+{
+	const HostBoundFunction* pFunc = pImplementation->getImportedFunctionDetails( pName );
+
+	return pFunc ? pFunc->pObject : nullptr;
+}
+//--------------------------------------------------------------------
+
 const char* binderoo::Host::generateCPPStyleBindingDeclarationsForAllObjects()
 {
 	return pImplementation->generateCPPStyleBindingDeclarationsForAllObjects();
@@ -333,6 +341,8 @@ binderoo::HostImplementation::HostImplementation( HostConfiguration& config )
 	, bReloadLibs( false )
 {
 	collectExports();
+
+	performLoad();
 }
 //----------------------------------------------------------------------------
 

@@ -125,6 +125,9 @@ namespace binderoo
 		BIND_INLINE bool destroyImportedClass( void* pObj )						{ return destroyImportedClass( TypeNames< _ty >::getDName(), pObj ); }
 		//--------------------------------------------------------------------
 
+		const BoundFunction* getImportedFunctionDetails( const char* pName ) const;
+		//--------------------------------------------------------------------
+
 		// Returns a string allocated with your unaligned_alloc function that represents
 		// the required #defines to bind a C++ object to the system
 		const char* generateCPPStyleBindingDeclarationsForAllObjects();

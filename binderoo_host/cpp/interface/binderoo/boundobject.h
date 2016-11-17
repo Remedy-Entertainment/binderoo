@@ -65,6 +65,8 @@ namespace binderoo
 		BoundObjectAllocator		alloc;
 		BoundObjectDeallocator		free;
 		BoundObjectThunk			thunk;
+		BoundObjectSerialise		serialise;
+		BoundObjectDeserialise		deserialise;
 
 		Type						eType;
 
