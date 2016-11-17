@@ -173,7 +173,6 @@ struct QuaternionFloat
 	final string toString()			{ return m_data.toString(); }
 	//------------------------------------------------------------------------
 
-private:
 	VectorFloat m_data = VectorFloat( 0.0, 0.0, 0.0, 1.0 );
 
 	this( VectorFloat data )

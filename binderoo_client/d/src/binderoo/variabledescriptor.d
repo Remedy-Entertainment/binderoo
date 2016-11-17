@@ -81,6 +81,10 @@ struct VariableDescriptor( T, ET, string objectName = null )
 	alias			Name							= ElementName;
 	//------------------------------------------------------------------------
 
+	enum			IsStatic						= binderoo.traits.IsStaticMember!( T, Name );
+	enum			IsMutable						= binderoo.traits.IsMutable!( T );
+	//------------------------------------------------------------------------
+
 	// This class has also been designed to allow you to use it without a containing type, so if you want to know if a type can be serialized at all you use VariableDescriptor!( void, <your type>, null )
 	static if( objectName !is null && __traits( compiles, __traits( getMember, T, objectName ).offsetof ) )
 	{
@@ -106,9 +110,12 @@ struct VariableDescriptor( T, ET, string objectName = null )
 			mixin( "return obj." ~ ElementName ~ ";" );
 		}
 
-		static void set( ref T obj, ref ET val )
+		static if( IsMutable )
 		{
-			mixin( "obj. " ~ ElementName ~ " = val;" );
+			static void set( ref T obj, ref ET val )
+			{
+				mixin( "obj. " ~ ElementName ~ " = val;" );
+			}
 		}
 	}
 }
@@ -154,7 +161,7 @@ template VariableDescriptors( T )
 
 	string gatherMembersForMixin()
 	{
-		string strOutputs[];
+		string[] strOutputs;
 
 		static if( IsUserType!( T ) )
 		{

@@ -42,7 +42,7 @@ enum PrivacyLevel : string
 };
 //----------------------------------------------------------------------------
 
-template PrivacyOf( T : void )
+template PrivacyOf( T... )
 {
 	enum PrivacyOf = PrivacyLevel.Inaccessible;
 }

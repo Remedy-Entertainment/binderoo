@@ -36,6 +36,9 @@ public import binderoo.typedescriptor;
 import binderoo.binding.serialise;
 //----------------------------------------------------------------------------
 
+//version = BoundSerialise;
+//----------------------------------------------------------------------------
+
 alias BoundObjectAllocator		= extern( C ) void* function( size_t uCount );
 alias BoundObjectDeallocator	= extern( C ) void function( void* pObject );
 alias BoundObjectThunk			= extern( C ) void* function( void* );
@@ -114,10 +117,12 @@ struct BoundObjectFunctions( Type )
 		static if( is( Type == struct ) )
 		{
 			Type* pVal = cast(Type*)mem;
-			*pVal = Type.init;
+			*pVal = Type();
 		}
 		else
 		{
+			static assert( false, "Classes aren't ready to be used like this. Please stick to structs." );
+
 			Type pVal = cast(Type)mem;
 			emplace!( Type )( mem[ 0 .. TypeSize ] );
 		}
@@ -151,22 +156,30 @@ struct BoundObjectFunctions( Type )
 	}
 	body
 	{
-		import std.json;
-		import std.string : toStringz;
-
-/+		static if( is( Type == struct ) )
+		version( BoundSerialise )
 		{
-			JSONValue serialised = serialise( *( cast( Type* )pObj ) );
+			import std.json;
+			import std.string : toStringz;
+
+			static if( is( Type == struct ) )
+			{
+				CastType actualObj = cast( CastType )pObj;
+				JSONValue serialised = serialise( *actualObj );
+			}
+			else
+			{
+				CastType actualObj = cast( CastType )pObj;
+				JSONValue serialised = serialise( actualObj );
+			}
+
+			string strJSON = toJSON( &serialised );
+
+			return strJSON.toStringz;
 		}
 		else
 		{
-			JSONValue serialised = serialise( cast( CastType ) pObj );
+			return null;
 		}
-
-		string strJSON = toJSON( &serialised );
-
-		return strJSON.toStringz;+/
-		return "";
 	}
 
 	static extern( C ) void deserialiseObj( void* pObj, const( char )* pData )
@@ -176,21 +189,28 @@ struct BoundObjectFunctions( Type )
 	}
 	body
 	{
-		import std.json;
-		import core.stdc.string : strlen;
-
-/+		const( char )[] strJSONSource = pData[ 0 .. strlen( pData ) ];
-		JSONValue json = parseJSON( strJSONSource );
-
-		CastType castObj = cast( CastType )pObj;
-		static if( is( Type == struct ) )
+		version( BoundSerialise )
 		{
-//			deserialise( *pCastObj );
+			import std.json;
+			import core.stdc.string : strlen;
+
+			const( char )[] strJSONSource = pData[ 0 .. strlen( pData ) ];
+			JSONValue json = parseJSON( strJSONSource );
+
+			CastType castObj = cast( CastType )pObj;
+			static if( is( Type == struct ) )
+			{
+				deserialise( *castObj, json );
+			}
+			else
+			{
+				deserialise( castObj, json );
+			}
 		}
 		else
 		{
-			deserialise( castObj );
-		}+/
+
+		}
 	}
 }
 //----------------------------------------------------------------------------

@@ -460,7 +460,7 @@ template FunctionDescriptors( T, CollectionOrder Order = DefaultCollectionOrder 
 
 		alias Overloads = Tuple!( __traits( getOverloads, T, name ) );
 
-		string strOutputs[];
+		string[] strOutputs;
 
 		static if( Order == CollectionOrder.OverridesReversed || Order == CollectionOrder.AllReversed )
 		{
@@ -483,7 +483,7 @@ template FunctionDescriptors( T, CollectionOrder Order = DefaultCollectionOrder 
 
 	string gatherForMixin()
 	{
-		string strOutputs[];
+		string[] strOutputs;
 
 		static if( IsUserType!( T ) )
 		{
@@ -560,6 +560,9 @@ struct FunctionString( Desc ) if( IsFunctionDescriptor!( Desc )() )
 	private enum string		Linkage						= !Desc.IsDFunction ? "extern( " ~ Desc.Linkage ~ " ) " : "";
 
 	enum string				DDeclNoLinkage				= generateFullyQualifiedName!( "FullyQualifiedDDecl" )();
+	enum string				DDeclNoLinkageRename( alias to ) = generateFullyQualifiedName!( "FullyQualifiedDDecl", to )();
+	enum string				DDeclNoLinkagePrependName( alias pre ) = generateFullyQualifiedName!( "FullyQualifiedDDecl", pre ~ TypeDescriptor.FunctionName )();
+
 	enum string				DDecl						= Linkage ~ DDeclNoLinkage;
 	enum string				CDecl						= generateFullyQualifiedName!( "CDecl" )();
 
@@ -595,7 +598,7 @@ struct FunctionString( Desc ) if( IsFunctionDescriptor!( Desc )() )
 	}
 	//------------------------------------------------------------------------
 
-	private static string generateFullyQualifiedName( alias stringSymbol )()
+	private static string generateFullyQualifiedName( alias stringSymbol, alias renameString = TypeDescriptor.FunctionName )()
 	{
 		enum ConstString = Desc.IsConst ? " const" : "";
 
@@ -621,7 +624,7 @@ struct FunctionString( Desc ) if( IsFunctionDescriptor!( Desc )() )
 			enum namespaceString = "";
 		}
 
-		return mixin( "TypeString!( ReturnDescriptor )." ~ stringSymbol ) ~ pointerString ~ TypeDescriptor.FunctionName ~ "( " ~ generateParameterString!( 0 )() ~ ")" ~ ConstString;
+		return mixin( "TypeString!( ReturnDescriptor )." ~ stringSymbol ) ~ pointerString ~ renameString ~ "( " ~ generateParameterString!( 0 )() ~ ")" ~ ConstString;
 	};
 	//------------------------------------------------------------------------
 

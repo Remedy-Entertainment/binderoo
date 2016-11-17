@@ -403,7 +403,6 @@ struct VectorFloat
 	final string toString() { import std.conv : to; return to!string( m_data.array ); }
 	//------------------------------------------------------------------------
 
-package:
 	float4 m_data;
 }
 //----------------------------------------------------------------------------

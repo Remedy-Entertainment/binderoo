@@ -38,6 +38,28 @@ import core.memory;
 import std.json;
 //----------------------------------------------------------------------------
 
+pragma( inline ) JSONValue serialise( Type )( ref Type val ) if( is( Type == delegate ) )
+{
+	return JSONValue.init;
+}
+//----------------------------------------------------------------------------
+
+pragma( inline ) void deserialise( Type )( ref Type target, JSONValue source ) if( is( Type == delegate ) )
+{
+}
+//----------------------------------------------------------------------------
+
+pragma( inline ) JSONValue serialise( Type )( ref Type val ) if( is( Type == function ) )
+{
+	return JSONValue.init;
+}
+//----------------------------------------------------------------------------
+
+pragma( inline ) void deserialise( Type )( ref Type target, JSONValue source ) if( is( Type == function ) )
+{
+}
+//----------------------------------------------------------------------------
+
 pragma( inline ) JSONValue serialise( Type )( ref Type val ) if( isScalarType!( Type ) || is( Type == string ) )
 {
 	return JSONValue( val );
@@ -87,56 +109,96 @@ pragma( inline ) void deserialise( Type )( ref Type target, JSONValue source ) i
 	// Deeper inspection of array type so that we can serialise pointers/reference types/etc.
 
 	target = null;
-	target.length = source.array.length;
+	static if( !IsStaticArray!( Type ) )
+	{
+		target.length = source.array.length;
+	}
 
 	foreach( iIndex, ref currVal; source.array )
 	{
-		deserialise( target[ iIndex ], currVal );
+		static if( IsStaticArray!( Type ) )
+		{
+			if( iIndex >= target.length )
+			{
+				break;
+			}
+		}
+		else
+		{
+			deserialise( target[ iIndex ], currVal );
+		}
 	}
 }
 //----------------------------------------------------------------------------
 
 pragma( inline ) JSONValue serialise( Type )( ref Type pointer ) if( isPointer!( Type ) )
 {
-	// TODO: Deeper pointer inspection
-//	if( GC.addrOf( pointer ) !is null )
+	JSONValue serialiseRawPointer( ref Type pointer )
 	{
-		// Owned by GC
-		size_t* ptr = cast( size_t* )&pointer;
-		JSONValue pointerData = [ "index" : *ptr ];
-		if( pointer !is null )
-		{
-			pointerData.object[ "data" ] = serialise( *pointer );
-		}
-		else
-		{
-			pointerData.object[ "data" ] = JSONValue();
-		}
-
-		return pointerData;
-	}
-/*	else
-	{
-		// Not owned by D, serialise the pointer value
-		size_t* ptr = cast( size_t* )&pointer;
+		size_t* ptr = *( cast( size_t** )&pointer );
 		JSONValue rawPtr = [ "raw" : *ptr, "instance" : size_t.max ];
 		return rawPtr;
-	}*/
+	}
+
+	static if( !is( Type == void* ) )
+	{
+		JSONValue serialiseObject( ref Type pointer )
+		{
+			size_t* ptr = cast( size_t* )&pointer;
+			JSONValue pointerData = [ "index" : *ptr ];
+			if( pointer !is null )
+			{
+				pointerData.object[ "data" ] = serialise( *pointer );
+			}
+			else
+			{
+				pointerData.object[ "data" ] = JSONValue();
+			}
+
+			return pointerData;
+		}
+	}
+
+	// TODO: Deeper pointer inspection
+	static if( is( Type == void* ) )
+	{
+		return serialiseRawPointer( pointer );
+	}
+	else
+	{
+//		if( GC.addrOf( pointer ) !is null )
+		{
+			// Owned by GC
+			return serialiseObject( pointer );
+		}
+/*		else
+		{
+			// Not owned by D, serialise the pointer value
+		}*/
+	}
 }
 //----------------------------------------------------------------------------
 
 pragma( inline ) void deserialise( Type )( ref Type target, JSONValue source ) if( isPointer!( Type ) )
 {
-	// TODO: Deeper pointer inspection
-	auto rawPtr = source.object[ "index" ].uinteger;
-	if( rawPtr != 0 )
+	static if( is( Type == void* ) )
 	{
-		target = new PointerTarget!( Type );
-		deserialise( *target, source.object[ "data" ] );
+		size_t* ptr = *( cast( size_t** )&target );
+		*ptr = cast( size_t ) source.integer;
 	}
 	else
 	{
-		target = null;
+		// TODO: Deeper pointer inspection
+		auto rawPtr = source.object[ "index" ].uinteger;
+		if( rawPtr != 0 )
+		{
+			target = new PointerTarget!( Type );
+			deserialise( *target, source.object[ "data" ] );
+		}
+		else
+		{
+			target = null;
+		}
 	}
 }
 //----------------------------------------------------------------------------
@@ -153,7 +215,10 @@ JSONValue serialise( Type )( ref Type object ) if( is( Type == struct ) || is( T
 
 	foreach( Variable; Variables )
 	{
-		objectRoot.object[ Variable.Name ] = serialise( Variable.get( object ) );
+		static if( !Variable.IsStatic && !Variable.HasUDA!( BindNoSerialise ) )
+		{
+			objectRoot.object[ Variable.Name ] = serialise( Variable.get( object ) );
+		}
 	}
 
 	return objectRoot;

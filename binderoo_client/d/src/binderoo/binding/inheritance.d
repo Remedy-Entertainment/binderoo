@@ -54,9 +54,20 @@ struct InheritanceVirtualCall { }
 struct InheritanceMethodCall { }
 //----------------------------------------------------------------------------
 
+enum InheritanceStructType
+{
+	CPP,
+	D,
+}
+//----------------------------------------------------------------------------
+
 template BaseTypes( Type )
 {
-	static if( __traits( compiles, typeof( Type.base ) ) && HasUDA!( Type.base, InheritanceBase ) )
+	static if( is( Type == void ) )
+	{
+		alias BaseTypes = TypeTuple!();
+	}
+	else static if( __traits( compiles, typeof( Type.base ) ) && HasUDA!( Type.base, InheritanceBase ) )
 	{
 		alias BaseTypes = TypeTuple!( BaseTypes!( typeof( Type.base ) ), typeof( Type.base ) );
 	}
@@ -97,18 +108,52 @@ template GenerateBaseAccessors( Type, uint iDepth = 0u )
 }
 //----------------------------------------------------------------------------
 
-mixin template GenerateImports( ThisType )
+mixin template GenerateImports( ThisType, BaseType )
 {
-	@InheritanceGeneratedVTable struct VTable
+	@InheritanceGeneratedVTable
+	@BindNoExportObject
+	struct VTable
 	{
 		public import std.typetuple;
 		public import binderoo.binding.functionstub;
 		public import binderoo.objectprivacy;
 
+		static string DOverridesEnumGen( T )()
+		{
+			string[] strNewOverrides;
+
+			foreach( Function; FunctionDescriptors!( T ) )
+			{
+				static if( Function.HasUDA!( BindVirtual ) )
+				{
+					enum OldFunctionDecl = "extern( C++ ) " ~ FunctionString!( Function ).DDeclNoLinkage;
+					strNewOverrides ~= "{ \"" ~ OldFunctionDecl ~ "\", \"CPPLinkage_" ~ Function.Name ~ "\" }";
+				}
+			}
+
+			return "enum DOverride[] DOverrides = [ " ~ strNewOverrides.joinWith( ", " ) ~ " ];\n";
+		}
+
+		static if( ThisType.StructType == InheritanceStructType.D )
+		{
+			mixin( DOverridesEnumGen!( ThisType ) );
+		}
+		else
+		{
+			enum DOverride[] DOverrides = [];
+		}
+
+		static if( is( BaseType == void ) )
+		{
+			alias Types = TypeTuple!( ThisType );
+		}
+		else
+		{
+			alias Types = TypeTuple!( BaseTypes!( BaseType ), BaseType, ThisType );
+		}
+
 		static private string generateTypeMixin()
 		{
-			alias Types = TypeTuple!( BaseTypes!( ThisType ), ThisType );
-
 			import std.algorithm;
 			import std.conv;
 			import binderoo.traits;
@@ -140,13 +185,22 @@ mixin template GenerateImports( ThisType )
 						{
 							alias FunctionDetails = Function.GetUDA!( BindVirtual );
 
+							enum OverrideFound = DOverrides.find!( ( a, b ) => a.strFunctionSignature == b )( FunctionString!( Function ).DDecl );
+
 							string strIsConst = Function.IsConst ? "true" : "false";
 
-							string UDAs = "@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( ThisType, false ).CDecl ~ "::" ~ Function.Name ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", BindRawImport.FunctionKind.Virtual, " ~ strIsConst ~ ", " ~ OwnerIsAbstract ~ ", " ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
 							string identifier = "function" ~ to!string( iIndex++ );
-
 							identifiers ~= identifier;
-							pointers ~= UDAs ~ "\nRawMemberFunctionPointer!( FunctionDescriptor!(" ~ fullyQualifiedName!( Function.ObjectType ) ~ ", \"" ~ Function.Name ~ "\", " ~ to!string( Function.OverloadIndex ) ~ " )" ~ ", " ~ ThisType.stringof ~ " ) " ~ identifier ~ ";";
+
+							static if( OverrideFound.length == 0 )
+							{
+								string UDAs = "@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( ThisType, false ).CDecl ~ "::" ~ Function.Name ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", BindRawImport.FunctionKind.Virtual, " ~ strIsConst ~ ", " ~ OwnerIsAbstract ~ ", " ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
+								pointers ~= UDAs ~ "\nRawMemberFunctionPointer!( FunctionDescriptor!(" ~ fullyQualifiedName!( Function.ObjectType ) ~ ", \"" ~ Function.Name ~ "\", " ~ to!string( Function.OverloadIndex ) ~ " )" ~ ", " ~ ThisType.stringof ~ " ) " ~ identifier ~ ";";
+							}
+							else
+							{
+								pointers ~= "@NoScriptVisibility\nRawMemberFunctionPointer!( FunctionDescriptor!(" ~ fullyQualifiedName!( Function.ObjectType ) ~ ", \"" ~ Function.Name ~ "\", " ~ to!string( Function.OverloadIndex ) ~ " )" ~ ", " ~ ThisType.stringof ~ " ) " ~ identifier ~ " = &" ~ TypeString!( ThisType, false ).DDecl ~ "." ~ OverrideFound[ 0 ].strFunctionCDeclCallName ~ ";";
+							}
 						}
 					}
 				}
@@ -154,7 +208,7 @@ mixin template GenerateImports( ThisType )
 
 			if( pointers.length > 0 )
 			{
-				return modules.joinWith( "\n" ) ~ "\n" ~ pointers.joinWith( "\n\n" ) ~ "\n\n" ~ "enum FunctionCount = " ~ to!string( identifiers.length ) ~ ";\n\n";
+				return modules.joinWith( "\n" ) ~ "\n\n" ~ pointers.joinWith( "\n\n" ) ~ "\n\n" ~ "enum FunctionCount = " ~ to!string( identifiers.length ) ~ ";\n\n";
 			}
 			else
 			{
@@ -164,8 +218,6 @@ mixin template GenerateImports( ThisType )
 
 		static string generateAccessorsString()
 		{
-			alias Types = TypeTuple!( BaseTypes!( ThisType ), ThisType );
-
 			import std.algorithm;
 			import std.conv;
 			import binderoo.traits;
@@ -185,18 +237,16 @@ mixin template GenerateImports( ThisType )
 						{
 							static if( !Function.HasUDA!( BindDisallow ) )
 							{
+
 								string[] parameterNames = [ "thisObj" ];
-								//string staticParameterNames[] = [ ThisType.stringof ~ "* thisObj" ];
 
 								static if( FunctionString!( Function ).ParameterNames.length > 0 )
 								{
 									parameterNames ~= FunctionString!( Function ).ParameterNames;
-									//staticParameterNames ~= FunctionString!( Function ).ParameterDeclarations;
 								}
 
 								string pointerName = "function" ~ to!string( iIndex );
 								functionCalls ~= "@InheritanceVirtualCall pragma( inline ) " ~ FunctionString!( Function ).DDeclNoLinkage ~ " { " ~ ThisType.stringof ~ "* thisObj = cast(" ~ ThisType.stringof ~ "*)&this; return __vtableData." ~ pointerName ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }";
-								//functionCalls ~= "static private auto __vtablecall_" ~ pointerName ~ "( " ~ staticParameterNames.joinWith( ", " ) ~ " ) { return __vtableData." ~ pointerName ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }";
 							}
 							++iIndex;
 						}
@@ -215,16 +265,24 @@ mixin template GenerateImports( ThisType )
 	}
 	//------------------------------------------------------------------------
 
+	@BindNoExportObject
 	struct MethodTable
 	{
 		public import std.typetuple;
 		public import binderoo.binding.functionstub;
 		public import binderoo.objectprivacy;
 
+		static if( is( BaseType == void ) )
+		{
+			alias Types = TypeTuple!( ThisType );
+		}
+		else
+		{
+			alias Types = TypeTuple!( BaseTypes!( BaseType ), BaseType, ThisType );
+		}
+
 		static private string generateTypeMixin()
 		{
-			alias Types = TypeTuple!( BaseTypes!( ThisType ), ThisType );
-
 			import std.algorithm;
 			import std.conv;
 			import binderoo.traits;
@@ -279,8 +337,6 @@ mixin template GenerateImports( ThisType )
 
 		static string generateAccessorsString()
 		{
-			alias Types = TypeTuple!( BaseTypes!( ThisType ), ThisType );
-
 			import std.algorithm;
 			import std.conv;
 			import binderoo.traits;
@@ -355,7 +411,7 @@ mixin template GenerateImports( ThisType )
 	__gshared VTable		__vtableData;
 	__gshared MethodTable	__methodtableData;
 
-	version( InheritanceVTableDebug ) pragma( msg, VTable.generateAccessorsString() );
+	version( InheritanceVTableDebug ) pragma( msg, ThisType.stringof ~ " accessors:\n" ~ VTable.generateAccessorsString() ~ "\n" );
 	mixin( VTable.generateAccessorsString() );
 
 	version( InheritanceMTableDebug ) pragma( msg, MethodTable.generateAccessorsString() );
@@ -363,14 +419,69 @@ mixin template GenerateImports( ThisType )
 }
 //----------------------------------------------------------------------------
 
-mixin template CPPStructInherits( T, NewMethods = void )
+struct DOverride
 {
-	version( InheritanceInspectionDebug ) pragma( msg, "Inheritance: Struct " ~ typeof( this ).stringof );
-	version( InheritanceInspectionDebug ) pragma( msg, GenerateBaseAccessors!( T ) );
+	string strFunctionSignature;
+	string strFunctionCDeclCallName;
+}
+//----------------------------------------------------------------------------
+
+string DStructOverrideSetup( T )()
+{
+	string[] strNewStubs;
+
+	foreach( Function; FunctionDescriptors!( T ) )
+	{
+		static if( Function.HasUDA!( BindVirtual ) )
+		{
+			enum OldFunctionDecl = "extern( C++ ) " ~ FunctionString!( Function ).DDeclNoLinkage;
+			static if( Function.ParameterCount == 0 )
+			{
+				enum NewFunctionDecl = "static extern( C++ ) " ~ TypeString!( Function.ReturnType ).DDecl ~ " CPPLinkage_" ~ Function.Name ~ "( " ~ T.stringof ~ "* thisObj )";
+			}
+			else
+			{
+				enum NewFunctionDecl = "static extern( C++ ) " ~ TypeString!( Function.ReturnType ).DDecl ~ " CPPLinkage_" ~ Function.Name ~ "( " ~ T.stringof ~ "* thisObj, " ~ FunctionString!( Function ).ParameterDeclarations ~ " )";
+			}
+
+			static if( Function.HasReturnType )
+			{
+				enum NewFunctionStub = "@BindOverrides( \"" ~ OldFunctionDecl ~ "\" )\n"
+										~ NewFunctionDecl ~ "\n"
+										~ "{\n"
+										~ "\treturn thisObj." ~ Function.Name ~ "( " ~ FunctionString!( Function ).ParameterNames ~ " );\n"
+										~ "}\n";
+
+			}
+			else
+			{
+				enum NewFunctionStub = "@BindOverrides( \"" ~ OldFunctionDecl ~ "\" )\n"
+										~ NewFunctionDecl ~ "\n"
+										~ "{\n"
+										~ "\tthisObj." ~ Function.Name ~ "( " ~ FunctionString!( Function ).ParameterNames ~ " );\n"
+										~ "}\n";
+			}
+			strNewStubs ~= NewFunctionStub;
+		}
+	}
+
+	return strNewStubs.joinWith( "\n" );
+}
+//----------------------------------------------------------------------------
+
+mixin template DStructInherits( T )
+{
+	enum StructType					= InheritanceStructType.D;
+
+	version( InheritanceInspectionDebug ) pragma( msg, "D Inheritance: Struct " ~ typeof( this ).stringof );
+	version( InheritanceInspectionDebug ) pragma( msg, typeof( this ).stringof ~ " base accessors:\n" ~ GenerateBaseAccessors!( T ) );
+
+	mixin( DStructOverrideSetup!( typeof( this ) )() );
 
 	mixin( GenerateBaseAccessors!( T ) );
+	mixin GenerateImports!( typeof( this ), T );
 
-	mixin GenerateImports!( typeof( this ) );
+	pragma( msg, typeof( this ).stringof ~ " vtable:\n" ~ VTable.generateTypeMixin() );
 
 	static if( T.VTable.FunctionCount > 0 )
 	{
@@ -382,7 +493,45 @@ mixin template CPPStructInherits( T, NewMethods = void )
 		static if( VTable.FunctionCount > 0 )
 		{
 			// This is meant to be a void** to be 100% correct. But the compiler won't let me.
-			void*						__vtable = &__vtableData;
+			@BindNoSerialise void*	__vtable = &__vtableData;
+		}
+		// TODO: Nicer method of non-virtual bases
+		@InheritanceBase T			base;
+	}
+
+	alias base						this;
+
+/+	static auto opCall()
+	{
+		typeof( this ) newObj;
+		return newObj;
+	}+/
+
+}
+//----------------------------------------------------------------------------
+
+mixin template CPPStructInherits( T, NewMethods = void )
+{
+	enum StructType					= InheritanceStructType.CPP;
+
+	version( InheritanceInspectionDebug ) pragma( msg, "C++ Inheritance: Struct " ~ typeof( this ).stringof );
+	version( InheritanceInspectionDebug ) pragma( msg, typeof( this ).stringof ~ " base accessors:\n" ~ GenerateBaseAccessors!( T ) );
+
+	mixin( GenerateBaseAccessors!( T ) );
+
+	mixin GenerateImports!( typeof( this ), T );
+
+	static if( T.VTable.FunctionCount > 0 )
+	{
+		//pragma( msg, typeof(this).stringof ~ " will call base constructor " ~ T.stringof ~ " with a vtable" );
+		@InheritanceBase T			base = T( &__vtableData );
+	}
+	else
+	{
+		static if( VTable.FunctionCount > 0 )
+		{
+			// This is meant to be a void** to be 100% correct. But the compiler won't let me.
+			@BindNoSerialise void*	__vtable = &__vtableData;
 		}
 		// TODO: Nicer method of non-virtual bases
 		@InheritanceBase T			base;
@@ -395,45 +544,57 @@ mixin template CPPStructInherits( T, NewMethods = void )
 	static if( VTable.FunctionCount > 0 )
 	{
 		import binderoo.traits : HasUDA, GetUDA;
-		this( VTableType )( VTableType* newVTable ) if( HasUDA!( VTableType, InheritanceGeneratedVTable ) )
+		static auto opCall( VTableType )( VTableType* newVTable ) if( HasUDA!( VTableType, InheritanceGeneratedVTable ) )
 		{
+			typeof( this ) newObj;
 			static if( T.VTable.FunctionCount > 0 )
 			{
-				base = T( newVTable );
+				newObj.base = T( newVTable );
 			}
 			else
 			{
-				__vtable = newVTable;
+				newObj.__vtable = newVTable;
 			}
+
+			return newObj;
 		}
 	}
 	//------------------------------------------------------------------------
+
+	static auto opCall()
+	{
+		typeof( this ) newObj;
+		return newObj;
+	}
 }
 //----------------------------------------------------------------------------
 
-mixin template CPPStructBase( NewMethods = void, AlsoInherits = void )
+mixin template CPPStructBase( NewMethods = void )
 {
-	static if( !is( AlsoInherits == void ) )
-	{
-		mixin CPPStructInherits!( AlsoInherits, NewMethods );
-	}
-	else
-	{
-		alias MethodDescriptor		= NewMethods;
+	enum StructType				= InheritanceStructType.CPP;
 
-		mixin GenerateImports!( typeof( this ) );
-	}
+	alias MethodDescriptor		= NewMethods;
+
+	mixin GenerateImports!( typeof( this ), void );
 
 	static if( VTable.FunctionCount > 0 )
 	{
 		// This is meant to be a void** to be 100% correct. But the compiler won't let me.
-		void*						__vtable = &__vtableData;
+		@BindNoSerialise void*		__vtable = &__vtableData;
 
 		import binderoo.traits : HasUDA, GetUDA;
-		this( VTableType )( VTableType* newVTable ) if( HasUDA!( VTableType, InheritanceGeneratedVTable ) )
+		static auto opCall( VTableType )( VTableType* newVTable ) if( HasUDA!( VTableType, InheritanceGeneratedVTable ) )
 		{
-			__vtable = newVTable;
+			typeof( this ) newObj;
+			newObj.__vtable = newVTable;
+			return newObj;
 		}
+	}
+
+	static auto opCall()
+	{
+		typeof( this ) newObj;
+		return newObj;
 	}
 }
 //----------------------------------------------------------------------------

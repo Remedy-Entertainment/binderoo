@@ -31,8 +31,11 @@ module binderoo.binding.attributes;
 //----------------------------------------------------------------------------
 
 struct BindIgnore { }
+struct BindNoExportObject { }
+struct BindNoSerialise { }
 //----------------------------------------------------------------------------
 
+// Used internally. Avoid using yourself.
 struct BindRawImport
 {
 	enum FunctionKind : char
@@ -70,6 +73,14 @@ struct BindRawImport
 		iMaxVersion						= maxVersion;
 	}
 }
+//----------------------------------------------------------------------------
+
+// Used internally. Avoid using yourself.
+struct BindOverrides
+{
+	string strFunctionName;
+}
+//----------------------------------------------------------------------------
 //----------------------------------------------------------------------------
 
 // A function marked with BindDisallow will not define the wrapper function

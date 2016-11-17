@@ -107,7 +107,8 @@ template IsStaticMember( T, alias Member )
 {
 	static if( __traits( compiles, __traits( getMember, T, Member ) ) )
 	{
-		enum IsStaticMember = IsVariable!( __traits( getMember, T, Member ) );
+		enum IsStaticMember = IsVariable!( __traits( getMember, T, Member ) )
+							&& !__traits( compiles, __traits( getMember, T, Member ).offsetof );
 	}
 	else
 	{
@@ -176,6 +177,24 @@ template IsPlainArray( A : T[], T )
 }
 //----------------------------------------------------------------------------
 
+template IsStaticArray( T )
+{
+	enum IsStaticArray = false;
+}
+//----------------------------------------------------------------------------
+
+template IsStaticArray( A : T[], T )
+{
+	enum IsStaticArray = false;
+}
+//----------------------------------------------------------------------------
+
+template IsStaticArray( A : T[ L ], T, size_t L )
+{
+	enum IsStaticArray = true;
+}
+//----------------------------------------------------------------------------
+
 template IsAssociativeArray( T )
 {
 	enum IsAssociativeArray = false;
@@ -191,6 +210,12 @@ template IsAssociativeArray( A : T[ E ], T, E )
 template IsSomeType( T )
 {
 	enum IsSomeType = true;
+}
+//----------------------------------------------------------------------------
+
+template IsSomeType( T... )
+{
+	enum IsSomeType = false;
 }
 //----------------------------------------------------------------------------
 

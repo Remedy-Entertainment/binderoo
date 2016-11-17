@@ -90,7 +90,7 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 		string makeATuple()
 		{
 			import std.conv : to;
-			import binderoo.traits : IsUserType, joinWith;
+			import binderoo.traits : IsUserType, IsSomeType, joinWith;
 
 			string[] indices;
 			foreach( Alias; Aliases )
@@ -130,7 +130,8 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 			BoundObject[] objects;
 			foreach( Type; Types )
 			{
-				static if( is( Type == struct ) || is( Type == class ) )
+				static if( ( is( Type == struct ) || is( Type == class ) )
+							&& !HasUDA!( Type, BindNoExportObject ) )
 				{
 					objects ~= BoundObject( DString( fullyQualifiedName!( Type ) ),
 											fnv1a_64( fullyQualifiedName!( Type ) ),
@@ -395,7 +396,7 @@ public string[] generateCPPStyleBindingDeclaration( BoundFunction[] functions )
 				"#define protected public";*/
 
 	outputs ~=	"#include \"binderoo/defs.h\"\n"
-				"#include \"binderoo/exports.h\"";
+				~ "#include \"binderoo/exports.h\"";
 
 	foreach( ref boundFunction; functions )
 	{
@@ -429,7 +430,7 @@ public string[] generateCPPStyleBindingDeclaration( BoundFunction[] functions )
 		string strClass = foundClass.key;
 		string strClassWithoutNamespaces = strClass.replace( "::", "_" );
 
-		string definitionLines[];
+		string[] definitionLines;
 
 		string strExportVersion = "iExportVersion_" ~ strClassWithoutNamespaces;
 		string strNumExportedMethods = "numExportedMethods_" ~ strClassWithoutNamespaces;
