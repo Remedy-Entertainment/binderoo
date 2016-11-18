@@ -87,6 +87,7 @@ struct BoundFunction
 	Hashes					functionHashes;
 	void*					pFunction;
 	int						iMinimumVersion;
+	int						iOrderInTable;
 	Resolution				eResolution;
 	CallingConvention		eCallingConvention;
 	FunctionKind			eFunctionKind;

@@ -189,12 +189,14 @@ mixin template GenerateImports( ThisType, BaseType )
 
 							string strIsConst = Function.IsConst ? "true" : "false";
 
-							string identifier = "function" ~ to!string( iIndex++ );
+							string orderInTable = to!string( iIndex++ );
+							string identifier = "function" ~ orderInTable;
+
 							identifiers ~= identifier;
 
 							static if( OverrideFound.length == 0 )
 							{
-								string UDAs = "@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( ThisType, false ).CDecl ~ "::" ~ Function.Name ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", BindRawImport.FunctionKind.Virtual, " ~ strIsConst ~ ", " ~ OwnerIsAbstract ~ ", " ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
+								string UDAs = "@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( ThisType, false ).CDecl ~ "::" ~ Function.Name ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", BindRawImport.FunctionKind.Virtual, " ~ orderInTable ~ ", " ~ strIsConst ~ ", " ~ OwnerIsAbstract ~ ", " ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
 								pointers ~= UDAs ~ "\nRawMemberFunctionPointer!( FunctionDescriptor!(" ~ fullyQualifiedName!( Function.ObjectType ) ~ ", \"" ~ Function.Name ~ "\", " ~ to!string( Function.OverloadIndex ) ~ " )" ~ ", " ~ ThisType.stringof ~ " ) " ~ identifier ~ ";";
 							}
 							else
@@ -316,9 +318,10 @@ mixin template GenerateImports( ThisType, BaseType )
 							enum IsConst = Function.IsConst ? "true" : "false";
 							enum FunctionKind = Function.IsStatic ? "BindRawImport.FunctionKind.Static" : "BindRawImport.FunctionKind.Method";
 
-							string identifier = "function" ~ to!string( iIndex++ );
-							
-							string UDAs = "@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( ThisType, false ).CDecl ~ "::" ~ Function.Name ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", " ~ FunctionKind ~ ", " ~ IsConst ~ ", " ~ OwnerIsAbstract ~ ", "  ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
+							string orderInTable = to!string( iIndex++ );
+							string identifier = "function" ~ orderInTable;
+
+							string UDAs = "@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( ThisType, false ).CDecl ~ "::" ~ Function.Name ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", " ~ FunctionKind ~ ", " ~ orderInTable ~ ", " ~ IsConst ~ ", " ~ OwnerIsAbstract ~ ", "  ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
 							pointers ~= UDAs ~ "\nRawMemberFunctionPointer!( FunctionDescriptor!(" ~ fullyQualifiedName!( Function.ObjectType ) ~ ", \"" ~ Function.Name ~ "\", " ~ to!string( Function.OverloadIndex ) ~ " )" ~ ", " ~ ThisType.stringof ~ " ) " ~ identifier ~ ";";
 						}
 					}

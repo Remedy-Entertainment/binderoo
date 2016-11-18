@@ -233,6 +233,7 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 													, BoundFunction.Hashes( ImportData.uNameHash, ImportData.uSignatureHash )
 													, mixin( "cast(void*) &" ~ fullyQualifiedName!( Type ) ~ "." ~ TableStaticMember ~ "." ~ tableMember )
 													, ImportData.iIntroducedVersion
+													, ImportData.iOrderInTable
 													, BoundFunction.Resolution.WaitingForImport
 													, BoundFunction.CallingConvention.CPP
 													, convert( ImportData.eKind )
@@ -295,6 +296,7 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 													, BoundFunction.Hashes( fnv1a_64( FullName ), fnv1a_64( Signature ) )
 													, mixin( "&" ~ fullyQualifiedName!( Symbol ) )
 													, ExportData.iIntroducedVersion
+													, 0
 													, BoundFunction.Resolution.Exported
 													, BoundFunction.CallingConvention.CPP
 													, BoundFunction.FunctionKind.Static
@@ -452,13 +454,13 @@ public string[] generateCPPStyleBindingDeclaration( BoundFunction[] functions )
 			definitionLines ~= "static binderoo::ExportedMethod " ~ strExportedMethods ~ "[] =";
 			definitionLines ~= "{";
 
-			foreach( iCount, iIndex; foundClass.value )
+			foreach( iIndex; foundClass.value )
 			{
 				BoundFunction func = functions[ iIndex ];
 
 				if( func.eFunctionKind == BoundFunction.FunctionKind.Virtual )
 				{
-					definitionLines ~= "\tbinderoo::ExportedMethod( \"" ~ cast( string )func.strFunctionName ~ "\", \"" ~ cast( string )func.strFunctionSignature ~ "\", " ~ strVTableOf ~ "[ " ~ to!string( iCount ) ~ " ] ),";
+					definitionLines ~= "\tbinderoo::ExportedMethod( \"" ~ cast( string )func.strFunctionName ~ "\", \"" ~ cast( string )func.strFunctionSignature ~ "\", " ~ strVTableOf ~ "[ " ~ to!string( func.iOrderInTable ) ~ " ] ),";
 				}
 				else
 				{
@@ -504,8 +506,12 @@ public string generateCPPStyleBindingDeclarationsForAllObjects()
 
 	foreach( currFunctions; importFunctions.byValue )
 	{
-		functions ~= currFunctions;
+		functions ~= currFunctions[ 0 ];
 	}
+
+	import std.algorithm : sort;
+
+	functions.sort!( ( a, b ) => a.iOrderInTable < b.iOrderInTable )();
 
 	string[] declarations = generateCPPStyleBindingDeclaration( functions );
 
