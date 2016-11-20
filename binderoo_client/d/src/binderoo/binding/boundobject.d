@@ -36,7 +36,7 @@ public import binderoo.typedescriptor;
 import binderoo.binding.serialise;
 //----------------------------------------------------------------------------
 
-//version = BoundSerialise;
+version = BoundSerialise;
 //----------------------------------------------------------------------------
 
 alias BoundObjectAllocator		= extern( C ) void* function( size_t uCount );
@@ -120,7 +120,7 @@ struct BoundObjectFunctions( Type )
 
 			import binderoo.binding.inheritance : constructObject;
 
-			pVal.constructObject();
+			constructObject( *pVal );
 		}
 		else
 		{
