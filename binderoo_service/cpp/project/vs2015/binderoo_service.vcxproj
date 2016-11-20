@@ -82,12 +82,14 @@
     <ClInclude Include="..\..\..\..\binderoo_common\cpp\interface\fastdelegate\fastdelegate.h" />
     <ClInclude Include="..\..\..\..\binderoo_common\cpp\src\binderoo\containers.h" />
     <ClInclude Include="..\..\..\..\binderoo_common\cpp\src\binderoo\fileutils.h" />
+    <ClInclude Include="..\..\..\..\binderoo_common\cpp\src\binderoo\sharedevent.h" />
     <ClInclude Include="..\..\interface\binderoo\monitoredfolder.h" />
     <ClInclude Include="..\..\interface\binderoo\service.h" />
     <ClInclude Include="..\..\src\filewatcher.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\binderoo_common\cpp\src\binderoo\fileutils.cpp" />
+    <ClCompile Include="..\..\..\..\binderoo_common\cpp\src\binderoo\sharedevent.cpp" />
     <ClCompile Include="..\..\src\filewatcher_win32.cpp" />
     <ClCompile Include="..\..\src\service.cpp" />
   </ItemGroup>
