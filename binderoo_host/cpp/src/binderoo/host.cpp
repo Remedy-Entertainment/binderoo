@@ -192,9 +192,15 @@ namespace binderoo
 		//--------------------------------------------------------------------
 
 		void						saveObjectData();
+		void						loadObjectData();
 		//--------------------------------------------------------------------
 
 		void						performLoad();
+		void						performUnload();
+		//--------------------------------------------------------------------
+
+		void						destroyImportedObjects();
+		void						recreateImportedObjects();
 		//--------------------------------------------------------------------
 
 		void						collectExports();
@@ -355,10 +361,15 @@ bool binderoo::HostImplementation::checkForReloads()
 
 void binderoo::HostImplementation::performReloads()
 {
-	if( bReloadLibs )
-	{
-		bReloadLibs = false;
-	}
+	saveObjectData();
+	destroyImportedObjects();
+	performUnload();
+
+	performLoad();
+	recreateImportedObjects();
+	loadObjectData();
+
+	bReloadLibs = false;
 }
 //----------------------------------------------------------------------------
 
@@ -366,8 +377,28 @@ void binderoo::HostImplementation::saveObjectData()
 {
 	for( HostImportedObjectInstance& obj : vecImportClassInstances )
 	{
-		const HostBoundObject* pObjDescriptor = (const HostBoundObject*)obj.pInstance->pObjectDescriptor;
-//		obj.strReloadData = pObjDescriptor->pObject->;
+		if( obj.pInstance->pObjectInstance )
+		{
+			const HostBoundObject* pObjDescriptor = (const HostBoundObject*)obj.pInstance->pObjectDescriptor;
+			obj.strReloadData = pObjDescriptor->pObject->serialise( obj.pInstance->pObjectInstance );
+		}
+		else
+		{
+			obj.strReloadData.clear();
+		}
+	}
+}
+//----------------------------------------------------------------------------
+
+void binderoo::HostImplementation::loadObjectData()
+{
+	for( HostImportedObjectInstance& obj : vecImportClassInstances )
+	{
+		if( !obj.strReloadData.empty() )
+		{
+			const HostBoundObject* pObjDescriptor = (const HostBoundObject*)obj.pInstance->pObjectDescriptor;
+			pObjDescriptor->pObject->deserialise( obj.pInstance->pObjectInstance, obj.strReloadData.c_str() );
+		}
 	}
 }
 //----------------------------------------------------------------------------
@@ -381,7 +412,55 @@ void binderoo::HostImplementation::performLoad()
 	collectDynamicLibraries();
 	collectBoundFunctions();
 	collectBoundObjects();
+}
+//----------------------------------------------------------------------------
 
+void binderoo::HostImplementation::performUnload()
+{
+	destroyImportedObjects();
+
+	vecBoundObjects.clear();
+	vecBoundFunctions.clear();
+
+	for( HostDynamicLib& lib : vecDynamicLibs )
+	{
+		FreeLibrary( lib.hModule );
+	}
+
+	vecDynamicLibs.clear();
+}
+//----------------------------------------------------------------------------
+
+void binderoo::HostImplementation::destroyImportedObjects()
+{
+	for( HostImportedObjectInstance& obj : vecImportClassInstances )
+	{
+		if( obj.pInstance->pObjectInstance )
+		{
+			const HostBoundObject* pObjDescriptor = (const HostBoundObject*)obj.pInstance->pObjectDescriptor;
+			pObjDescriptor->pObject->free( obj.pInstance->pObjectInstance );
+			obj.pInstance->pObjectInstance = nullptr;
+		}
+
+		obj.pInstance->pObjectDescriptor = nullptr;
+	}
+}
+//----------------------------------------------------------------------------
+
+void binderoo::HostImplementation::recreateImportedObjects()
+{
+	for( HostImportedObjectInstance& obj : vecImportClassInstances )
+	{
+		const HostBoundObject* pObject = getImportedObjectDetails( obj.pInstance->pSymbol );
+		if( pObject )
+		{
+			obj.pInstance->pObjectDescriptor = (void*)pObject;
+			if( !obj.strReloadData.empty() )
+			{
+				obj.pInstance->pObjectInstance = pObject->pObject->alloc( 1 );
+			}
+		}
+	}
 }
 //----------------------------------------------------------------------------
 

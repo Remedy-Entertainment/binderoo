@@ -76,9 +76,9 @@ namespace binderoo
 		void performReloads();
 		//--------------------------------------------------------------------
 
-		BIND_INLINE void checkForAndPerformReloads()
+		BIND_INLINE void checkForAndPerformReloads( bool bForce = false )
 		{
-			if( checkForReloads() )
+			if( checkForReloads() || bForce )
 			{
 				performReloads();
 			}
