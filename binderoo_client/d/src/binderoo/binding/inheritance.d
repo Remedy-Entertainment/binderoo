@@ -637,4 +637,14 @@ template HasInheritedDirectly( Type, BaseType ) if( is( Type == struct ) )
 }
 //----------------------------------------------------------------------------
 
+void constructObject( Type )( ref Type obj )
+{
+	obj = Type.init;
+	static if( __traits( hasMember, Type, "OnConstruct" ) )
+	{
+		obj.OnConstruct();
+	}
+}
+//----------------------------------------------------------------------------
+
 //============================================================================

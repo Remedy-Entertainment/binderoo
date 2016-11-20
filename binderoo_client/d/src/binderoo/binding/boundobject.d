@@ -117,7 +117,10 @@ struct BoundObjectFunctions( Type )
 		static if( is( Type == struct ) )
 		{
 			Type* pVal = cast(Type*)mem;
-			*pVal = Type();
+
+			import binderoo.binding.inheritance : constructObject;
+
+			pVal.constructObject();
 		}
 		else
 		{
