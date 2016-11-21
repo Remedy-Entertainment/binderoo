@@ -72,6 +72,10 @@ namespace binderoo
 	typedef void(* ThreadSleepFunction )( size_t );
 	typedef void(* ThreadDestroyFunction )( void* );
 
+	typedef void(* LogInfoFunction )( const char* );
+	typedef void(* LogWarningFunction )( const char* );
+	typedef void(* LogErrorFunction )( const char* );
+
 	struct ServiceConfiguration
 	{
 		BIND_INLINE ServiceConfiguration()
@@ -105,6 +109,10 @@ namespace binderoo
 		ThreadCreateFunction				create_thread;
 		ThreadSleepFunction					sleep_thread;
 		ThreadDestroyFunction				destroy_thread;
+
+		LogInfoFunction						log_info;
+		LogWarningFunction					log_warning;
+		LogErrorFunction					log_error;
 	};
 
 	class ServiceImplementation;

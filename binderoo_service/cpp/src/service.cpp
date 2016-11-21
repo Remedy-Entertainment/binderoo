@@ -126,7 +126,7 @@ namespace binderoo
 
 		BIND_INLINE bool		succeeded() const
 		{
-			return launched() && dReturnCode == 0 && strStdError.empty();
+			return launched() && dReturnCode == 0;
 		}
 		//--------------------------------------------------------------------
 
@@ -161,6 +161,10 @@ namespace binderoo
 
 			updateObjects();
 		}
+		//--------------------------------------------------------------------
+
+		const Containers< AllocatorSpace::Service >::InternalString& stdOut() const { return strStdOut; }
+		const Containers< AllocatorSpace::Service >::InternalString& stdError() const { return strStdError; }
 		//--------------------------------------------------------------------
 
 	private:
@@ -260,7 +264,7 @@ namespace binderoo
 	};
 	//------------------------------------------------------------------------
 
-	bool compile( const Compiler& compiler, const ModuleVersion& version, const MonitoredFolder& folder, const Containers< AllocatorSpace::Service >::StringVector& vecInputFiles )
+	bool compile( const Compiler& compiler, const ModuleVersion& version, const MonitoredFolder& folder, const Containers< AllocatorSpace::Service >::StringVector& vecInputFiles, Containers< AllocatorSpace::Service >::InternalString& strOutputError )
 	{
 		if( !vecInputFiles.empty() )
 		{
@@ -361,8 +365,13 @@ namespace binderoo
 				BOOL bCopiedPDB = CopyFile( strPDBSource.c_str(), strPDBDest.c_str(), FALSE );
 				BOOL bCopiedDLL = CopyFile( strDLLSource.c_str(), strDLLDest.c_str(), FALSE );
 
+				DeleteFile( strPDBSource.c_str() );
+				DeleteFile( strDLLSource.c_str() );
+
 				return !!bCopiedDLL && !!bCopiedPDB;
 			}
+
+			strOutputError = compileProcess.stdError();
 		}
 
 		return false;
@@ -383,6 +392,10 @@ namespace binderoo
 
 	private:
 		bool compileFolder( binderoo::MonitoredFolder& folder );
+
+		void logInfo( const char* pMessage );
+		void logWarning( const char* pMessage );
+		void logError( const char* pMessage );
 
 		SharedEvent				reloadEvent;
 
@@ -432,10 +445,29 @@ int32_t binderoo::ServiceImplementation::threadFunction( binderoo::ThreadOSUpdat
 
 	std::set< MonitoredFolder* > changedFolders;
 
+	logInfo( "Binderoo service started, performing fresh compile..." );
+
 	for( auto& folder : pConfiguration->folders )
 	{
 		// std::set doesn't have a reserve function. This is essentially a hack, but should reserve all our memory.
 		changedFolders.insert( &folder );
+	}
+
+	// Kick off a recompile to begin with since we don't track state anywhere
+	bool bInitialCompileSuccessful = true;
+	for( auto& folder : pConfiguration->folders )
+	{
+		bInitialCompileSuccessful &= compileFolder( folder );
+	}
+
+	if( bInitialCompileSuccessful )
+	{
+		logInfo( "Changed modules recompiled successfully. Reload is being triggered." );
+		reloadEvent.signal();
+	}
+	else
+	{
+		logError( "Errors were encountered. Reload is NOT being triggered." );
 	}
 
 	while( !bHaltExecution )
@@ -460,6 +492,8 @@ int32_t binderoo::ServiceImplementation::threadFunction( binderoo::ThreadOSUpdat
 			bool bCompiledAll = false;
 			if( bImportPathsChanged )
 			{
+				logInfo( "Import path change detected. Recompiling all." );
+
 				bCompiledAll = true;
 				// Recompile all
 				for( auto& folder : pConfiguration->folders )
@@ -469,6 +503,8 @@ int32_t binderoo::ServiceImplementation::threadFunction( binderoo::ThreadOSUpdat
 			}
 			else
 			{
+				logInfo( "Module change detected. Recompiling some." );
+
 				bCompiledAll = true;
 				// Recompile only changed clients
 				for( auto& changedFolder : changedFolders )
@@ -479,7 +515,12 @@ int32_t binderoo::ServiceImplementation::threadFunction( binderoo::ThreadOSUpdat
 
 			if( bCompiledAll )
 			{
+				logInfo( "Changed modules recompiled successfully. Reload is being triggered." );
 				reloadEvent.signal();
+			}
+			else
+			{
+				logError( "Errors were encountered. Reload is NOT being triggered." );
 			}
 		}
 	}
@@ -508,24 +549,84 @@ bool binderoo::ServiceImplementation::compileFolder( binderoo::MonitoredFolder& 
 
 		pWatcher->getAllFiles( folder, vecAllFiles );
 
+		Containers< AllocatorSpace::Service >::InternalString strError;
+
 		if( pConfiguration->versions.length() )
 		{
 			for( ModuleVersion& version : pConfiguration->versions )
 			{
-				bCompiled &= binderoo::compile( pConfiguration->compilers[ 0 ], version, folder, vecAllFiles );
+				strError.clear();
+				bCompiled &= binderoo::compile( pConfiguration->compilers[ 0 ], version, folder, vecAllFiles, strError );
+				if( !strError.empty() )
+				{
+					Containers< AllocatorSpace::Service >::InternalString strErrorMessage;
+					strErrorMessage += "Module ";
+					strErrorMessage += Containers< AllocatorSpace::Service >::InternalString( folder.strClientLibraryName.data(), folder.strClientLibraryName.length() );
+					strErrorMessage += " version ";
+					strErrorMessage += Containers< AllocatorSpace::Service >::InternalString( version.strVersionName.data(), version.strVersionName.length() );
+					strErrorMessage += " failed to compile. Error log as follows.\n\n";
+					strErrorMessage += strError;
+
+					logError( strError.c_str() );
+				}
 			}
 		}
 		else
 		{
+			strError.clear();
 			ModuleVersion dummyVersion;
-			bCompiled &= binderoo::compile( pConfiguration->compilers[ 0 ], dummyVersion, folder, vecAllFiles );
+			bCompiled &= binderoo::compile( pConfiguration->compilers[ 0 ], dummyVersion, folder, vecAllFiles, strError );
+
+			if( !strError.empty() )
+			{
+				Containers< AllocatorSpace::Service >::InternalString strErrorMessage;
+				strErrorMessage += "Module ";
+				strErrorMessage += Containers< AllocatorSpace::Service >::InternalString( folder.strClientLibraryName.data(), folder.strClientLibraryName.length() );
+				strErrorMessage += " failed to compile. Error log as follows.\n\n";
+				strErrorMessage += strError;
+
+				logError( strError.c_str() );
+			}
 		}
 
 		return bCompiled;
 	}
+	else if( folder.eType == binderoo::MonitoredFolderType::ImportsPath )
+	{
+		// True for now until we can actually compile libs...
+		return true;
+	}
 
 	return false;
 }
+//----------------------------------------------------------------------------
+
+void binderoo::ServiceImplementation::logInfo( const char* pMessage )
+{
+	if( pConfiguration->log_info )
+	{
+		pConfiguration->log_info( pMessage );
+	}
+}
+//----------------------------------------------------------------------------
+
+void binderoo::ServiceImplementation::logWarning( const char* pMessage )
+{
+	if( pConfiguration->log_warning )
+	{
+		pConfiguration->log_warning( pMessage );
+	}
+}
+//----------------------------------------------------------------------------
+
+void binderoo::ServiceImplementation::logError( const char* pMessage )
+{
+	if( pConfiguration->log_error )
+	{
+		pConfiguration->log_error( pMessage );
+	}
+}
+//----------------------------------------------------------------------------
 //----------------------------------------------------------------------------
 
 binderoo::Service::Service( ServiceConfiguration& configuration )
