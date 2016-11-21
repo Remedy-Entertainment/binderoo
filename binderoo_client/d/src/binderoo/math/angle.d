@@ -56,6 +56,12 @@ struct Degrees
 	}
 	//------------------------------------------------------------------------
 
+	Degrees opUnary( string s )() if( s == "-" )
+	{
+		return Degrees( -m_data );
+	}
+	//------------------------------------------------------------------------
+
 	float	m_data = 0.0f;
 	alias	m_data this;
 }
@@ -84,6 +90,12 @@ struct Radians
 	void opAssign( Degrees dDegrees )
 	{
 		m_data = ToRadians( dDegrees ).m_data;
+	}
+	//------------------------------------------------------------------------
+
+	Radians opUnary( string s )() if( s == "-" )
+	{
+		return Radians( -m_data );
 	}
 	//------------------------------------------------------------------------
 
