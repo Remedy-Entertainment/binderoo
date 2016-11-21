@@ -55,6 +55,13 @@ namespace binderoo
 		friend class binderoo::HostImplementation;
 
 	protected:
+		BIND_INLINE ImportedBase( void* pInstance, void* pDescriptor, const char* pClassTypeName )
+			: pObjectInstance( pInstance )
+			, pObjectDescriptor( pDescriptor )
+			, pSymbol( pClassTypeName )
+		{
+		}
+
 		void*						pObjectInstance;
 		void*						pObjectDescriptor;
 		const char*					pSymbol;
@@ -77,6 +84,44 @@ namespace binderoo
 			{
 				instantiate();
 			}
+		}
+		//--------------------------------------------------------------------
+
+		BIND_INLINE ImportedClassInstance( ImportedClassInstance& otherInst )
+		{
+			static_assert( false, "ImportedClassInstance currently does not allow you to duplicate another instance. But that will be coming soon..." );
+		}
+		//--------------------------------------------------------------------
+
+		BIND_INLINE ImportedClassInstance( ImportedClassInstance&& otherInst )
+			: ImportedBase( otherInst.pObjectInstance, otherInst.pObjectDescriptor, otherInst.pSymbol )
+		{
+			otherInst.pObjectInstance = nullptr;
+			otherInst.pObjectDescriptor = nullptr;
+
+			Host::getActiveHost()->registerImportedClassInstance( this );
+		}
+		//--------------------------------------------------------------------
+
+		BIND_INLINE ImportedClassInstance& operator=( ImportedClassInstance& otherInst )
+		{
+			static_assert( false, "ImportedClassInstance currently does not allow you to duplicate another instance. But that will be coming soon..." );
+			return *this;
+		}
+		//--------------------------------------------------------------------
+
+		BIND_INLINE ImportedClassInstance& operator=( ImportedClassInstance&& otherInst )
+		{
+			deinstantiate();
+
+			pObjectInstance = otherInst.pObjectInstance;
+			pObjectDescriptor = otherInst.pObjectDescriptor;
+			pSymbol = otherInst.pSymbol;
+
+			otherInst.pObjectInstance = nullptr;
+			otherInst.pObjectDescriptor = nullptr;
+
+			return *this;
 		}
 		//--------------------------------------------------------------------
 
