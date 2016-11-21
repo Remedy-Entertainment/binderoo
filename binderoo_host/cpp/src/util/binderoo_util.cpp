@@ -237,6 +237,9 @@ int main( int argc, char** argv )
 			configuration.realloc = &test_realloc;
 			configuration.unaligned_alloc = &test_unaligned_malloc;
 			configuration.unaligned_free = &test_unaligned_free;
+			configuration.log_info = nullptr;
+			configuration.log_warning = nullptr;
+			configuration.log_error = nullptr;
 
 			binderoo::Host host( configuration );
 

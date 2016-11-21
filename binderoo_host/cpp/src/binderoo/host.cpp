@@ -44,6 +44,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 
 #include <Windows.h>
+#pragma warning( push )
+#pragma warning( disable: 4091 )
+#include <DbgHelp.h>
+#pragma warning( pop )
+
+#pragma comment( lib, "dbghelp.lib" )
+#pragma comment( lib, "Rpcrt4.lib" )
 //----------------------------------------------------------------------------
 
 binderoo::AllocatorFunc				binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Host >::fAlloc		= nullptr;
@@ -83,6 +90,16 @@ namespace binderoo
 	};
 	//------------------------------------------------------------------------
 
+	static const char* pDynamicLibStatusMessages[] =
+	{
+		"Not loaded",						// NotLoaded
+		"Load failed",						// LoadFailed
+		"Core interface not found",			// CoreInterfaceNotFound
+		"Unloaded",							// Unloaded
+		"Ready",							// Ready
+	};
+	//------------------------------------------------------------------------
+
 	struct HostDynamicLib
 	{
 		HostDynamicLib()
@@ -103,7 +120,8 @@ namespace binderoo
 		InternalString									strName;
 		InternalString									strPath;
 		InternalString									strScratchPath;
-		InternalString									strScratchPathSymbols;
+		InternalString									strScratchLib;
+		InternalString									strScratchSymbols;
 		HMODULE											hModule;
 		DynamicLibStatus								eStatus;
 
@@ -232,6 +250,10 @@ namespace binderoo
 		//--------------------------------------------------------------------
 
 	private:
+		void						logInfo( const char* pMessage );
+		void						logWarning( const char* pMessage );
+		void						logError( const char* pMessage );
+
 		HostConfiguration&			configuration;
 
 		SharedEvent					reloadEvent;
@@ -361,13 +383,19 @@ bool binderoo::HostImplementation::checkForReloads()
 
 void binderoo::HostImplementation::performReloads()
 {
+	logInfo( "Reload triggered." );
+
 	saveObjectData();
 	destroyImportedObjects();
 	performUnload();
 
+	logInfo( "Unload completed. Moving on to reload." );
+
 	performLoad();
 	recreateImportedObjects();
 	loadObjectData();
+
+	logInfo( "Reload completed." );
 
 	bReloadLibs = false;
 }
@@ -398,6 +426,7 @@ void binderoo::HostImplementation::loadObjectData()
 		{
 			const HostBoundObject* pObjDescriptor = (const HostBoundObject*)obj.pInstance->pObjectDescriptor;
 			pObjDescriptor->pObject->deserialise( obj.pInstance->pObjectInstance, obj.strReloadData.c_str() );
+			obj.strReloadData.clear();
 		}
 	}
 }
@@ -424,7 +453,31 @@ void binderoo::HostImplementation::performUnload()
 
 	for( HostDynamicLib& lib : vecDynamicLibs )
 	{
+		HANDLE hProcess = GetCurrentProcess();
+
+		auto pRelevantFunction = &binderoo::HostImplementation::performUnload;
+
+		DWORD64 dwModuleBase = SymGetModuleBase64( hProcess, *(DWORD64*)&pRelevantFunction );
+		if( dwModuleBase != 0 )
+		{
+			SymUnloadModule64( hProcess, dwModuleBase );
+		}
+
 		FreeLibrary( lib.hModule );
+
+		InternalString strErrorMessage = "Failed to delete ";
+		if( !DeleteFile( lib.strScratchSymbols.c_str() ) )
+		{
+			logWarning( (strErrorMessage + lib.strScratchSymbols ).c_str() );
+		}
+		if( !DeleteFile( lib.strScratchLib.c_str() ) )
+		{
+			logWarning( (strErrorMessage + lib.strScratchSymbols ).c_str() );
+		}
+		if( !RemoveDirectory( lib.strScratchPath.c_str() ) )
+		{
+			logWarning( (strErrorMessage + lib.strScratchSymbols ).c_str() );
+		}
 	}
 
 	vecDynamicLibs.clear();
@@ -444,11 +497,28 @@ void binderoo::HostImplementation::destroyImportedObjects()
 
 		obj.pInstance->pObjectDescriptor = nullptr;
 	}
+
+	for( binderoo::ImportedBase*& pImportedFunction : vecImportFunctionInstances )
+	{
+		pImportedFunction->pObjectDescriptor = nullptr;
+		pImportedFunction->pObjectInstance = nullptr;
+	}
 }
 //----------------------------------------------------------------------------
 
 void binderoo::HostImplementation::recreateImportedObjects()
 {
+	for( binderoo::ImportedBase*& pImportedFunction : vecImportFunctionInstances )
+	{
+		const HostBoundFunction* pFunction = getImportedFunctionDetails( pImportedFunction->pSymbol );
+
+		if( pFunction )
+		{
+			pImportedFunction->pObjectInstance		= (void*)pFunction->pObject->pFunction;
+			pImportedFunction->pObjectDescriptor		= (void*)pFunction;
+		}
+	}
+
 	for( HostImportedObjectInstance& obj : vecImportClassInstances )
 	{
 		const HostBoundObject* pObject = getImportedObjectDetails( obj.pInstance->pSymbol );
@@ -549,11 +619,21 @@ void binderoo::HostImplementation::collectDynamicLibraries()
 		dynamicLib.hModule = nullptr;
 		dynamicLib.eStatus = DynamicLibStatus::NotLoaded;
 
-		SetDllDirectory( libPath.substr( 0, uSlashIndex ).c_str() );
+		InternalString strNotification = "Library \"";
+		strNotification += dynamicLib.strName;
 
 		if( loadDynamicLibrary( dynamicLib ) )
 		{
+			strNotification += "\" loaded successfully.";
+			logInfo( strNotification.c_str() );
 			vecDynamicLibs.push_back( dynamicLib );
+		}
+		else
+		{
+			strNotification += "\" failed to load. Status: ";
+			strNotification += pDynamicLibStatusMessages[ (int)dynamicLib.eStatus ];
+
+			logError( strNotification.c_str() );
 		}
 	}
 }
@@ -640,10 +720,32 @@ bool binderoo::HostImplementation::loadDynamicLibrary( binderoo::HostDynamicLib&
 		CreateDirectory( strTempPath.c_str(), nullptr );
 	}
 
-	lib.strScratchPath = strTempPath + lib.strName + ".dll";
-	lib.strScratchPathSymbols = strTempPath + lib.strName + ".pdb";
+	UUID newUUID;
+	RPC_STATUS uResult = UuidCreate( &newUUID );
+	InternalString strUUID;
 
-	BOOL bSuccess = CopyFile( lib.strPath.c_str(), lib.strScratchPath.c_str(), FALSE );
+	const char* pCurr = (const char*)&newUUID;
+	const char* pEnd = pCurr + sizeof( UUID );
+	while( pCurr != pEnd )
+	{
+		char outBuffer[ 8 ] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+		snprintf( outBuffer, 8, "%02x", *(unsigned char*)pCurr );
+		strUUID += outBuffer;
+		++pCurr;
+	}
+
+	strTempPath += strUUID + "/";
+	dPathAttributes = GetFileAttributes( strTempPath.c_str() );
+	if( dPathAttributes == INVALID_FILE_ATTRIBUTES || ( dPathAttributes & FILE_ATTRIBUTE_DIRECTORY ) == 0 )
+	{
+		CreateDirectory( strTempPath.c_str(), nullptr );
+	}
+
+	lib.strScratchPath = strTempPath;
+	lib.strScratchLib = strTempPath + lib.strName + ".dll";
+	lib.strScratchSymbols = strTempPath + lib.strName + ".pdb";
+
+	BOOL bSuccess = CopyFile( lib.strPath.c_str(), lib.strScratchLib.c_str(), FALSE );
 
 	{
 		InternalString strPDBSource = lib.strPath;
@@ -651,13 +753,14 @@ bool binderoo::HostImplementation::loadDynamicLibrary( binderoo::HostDynamicLib&
 		strPDBSource.replace( strPDBSource.find_last_of( "." ), 4, ".pdb" );
 
 		DWORD dPDBAttributes = GetFileAttributes( strPDBSource.c_str() );
-		if( dPathAttributes != INVALID_FILE_ATTRIBUTES )
+		if( dPDBAttributes != INVALID_FILE_ATTRIBUTES )
 		{
-			CopyFile( strPDBSource.c_str(), lib.strScratchPathSymbols.c_str(), FALSE );
+			CopyFile( strPDBSource.c_str(), lib.strScratchSymbols.c_str(), FALSE );
 		}
 	}
 
-	HMODULE hModule = LoadLibrary( lib.strScratchPath.c_str() );
+	SetDllDirectory( strTempPath.c_str() );
+	HMODULE hModule = LoadLibrary( lib.strScratchLib.c_str() );
 
 	if( hModule != nullptr )
 	{
@@ -706,12 +809,12 @@ void binderoo::HostImplementation::registerImportedClassInstance( binderoo::Impo
 	if( pObject )
 	{
 		pInstance->pObjectDescriptor = (void*)pObject;
-
-		HostImportedObjectInstance objInstance;
-		objInstance.pInstance = pInstance;
-
-		vecImportClassInstances.push_back( objInstance );
 	}
+
+	HostImportedObjectInstance objInstance;
+	objInstance.pInstance = pInstance;
+
+	vecImportClassInstances.push_back( objInstance );
 }
 //----------------------------------------------------------------------------
 
@@ -737,9 +840,9 @@ void binderoo::HostImplementation::registerImportedFunction( binderoo::ImportedB
 	{
 		pInstance->pObjectInstance		= (void*)pFunction->pObject->pFunction;
 		pInstance->pObjectDescriptor		= (void*)pFunction;
-
-		vecImportFunctionInstances.push_back( pInstance );
 	}
+
+	vecImportFunctionInstances.push_back( pInstance );
 }
 //----------------------------------------------------------------------------
 
@@ -882,6 +985,33 @@ const char* binderoo::HostImplementation::generateCPPStyleBindingDeclarationsFor
 
 	return pOutput;
 
+}
+//----------------------------------------------------------------------------
+
+void binderoo::HostImplementation::logInfo( const char* pMessage )
+{
+	if( configuration.log_info )
+	{
+		configuration.log_info( pMessage );
+	}
+}
+//----------------------------------------------------------------------------
+
+void binderoo::HostImplementation::logWarning( const char* pMessage )
+{
+	if( configuration.log_warning )
+	{
+		configuration.log_warning( pMessage );
+	}
+}
+//----------------------------------------------------------------------------
+
+void binderoo::HostImplementation::logError( const char* pMessage )
+{
+	if( configuration.log_error )
+	{
+		configuration.log_error( pMessage );
+	}
 }
 //----------------------------------------------------------------------------
 

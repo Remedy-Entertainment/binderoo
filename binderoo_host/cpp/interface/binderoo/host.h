@@ -51,6 +51,8 @@ namespace binderoo
 	template< typename _functiontraits >
 	class ImportedFunction;
 
+	typedef void( BIND_C_CALL * LogFunc )( const char* );
+
 	struct BIND_DLL HostConfiguration
 	{
 		Slice< DString >					strDynamicLibSearchFolders;
@@ -62,6 +64,10 @@ namespace binderoo
 
 		UnalignedAllocatorFunc				unaligned_alloc;
 		UnalignedDeallocatorFunc			unaligned_free;
+
+		LogFunc								log_info;
+		LogFunc								log_warning;
+		LogFunc								log_error;
 	};
 	//------------------------------------------------------------------------
 
