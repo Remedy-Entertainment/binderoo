@@ -32,6 +32,7 @@ module binderoo.typedescriptor;
 
 public import binderoo.traits;
 public import std.traits;
+public import std.typetuple;
 //----------------------------------------------------------------------------
 
 struct TypeDescriptor( T, bool bIsRef = false )
@@ -61,6 +62,16 @@ struct TypeDescriptor( T, bool bIsRef = false )
 		}
 	}
 	//-------------------------------------------------------------------------
+
+	static if( __traits( compiles, __traits( getAttributes, T ) ) )
+	{
+		alias		UDAs							= TypeTuple!( __traits( getAttributes, T ) );
+	}
+	else
+	{
+		alias		UDAS							= TypeTuple!();
+	}
+	//------------------------------------------------------------------------
 
 	alias			Type							= T;
 	enum			Name							= T.stringof;

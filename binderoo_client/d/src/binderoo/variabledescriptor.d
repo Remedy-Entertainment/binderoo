@@ -34,6 +34,7 @@ public import binderoo.descriptorsearch;
 public import binderoo.objectprivacy;
 public import binderoo.traits;
 public import binderoo.typedescriptor;
+public import std.typetuple;
 //----------------------------------------------------------------------------
 
 struct VariableDescriptor( T, ET, string objectName = null )
@@ -62,6 +63,9 @@ struct VariableDescriptor( T, ET, string objectName = null )
 			alias GetUDA = binderoo.traits.GetUDA!( __traits( getMember, T, objectName ), Attr );
 		}
 	}
+	//------------------------------------------------------------------------
+
+	alias			UDAs							= TypeTuple!( __traits( getAttributes, __traits( getMember, T, objectName ) ) );
 	//------------------------------------------------------------------------
 
 	// The struct/class that contains the element we're interested in.

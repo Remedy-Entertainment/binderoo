@@ -103,12 +103,11 @@ template GenerateBaseAccessors( Type, uint iDepth = 0u )
 		enum BaseString = "";
 	}
 
-	enum GenerateBaseAccessors = "private pragma( inline ) final @property " ~ Type.stringof ~ "() { return " ~ generateMassiveBaseString( iDepth ) ~ "; }\n" ~ BaseString;
-
+	enum GenerateBaseAccessors = "\tprivate pragma( inline ) final @property " ~ Type.stringof ~ "() { return " ~ generateMassiveBaseString( iDepth ) ~ "; }\n" ~ BaseString;
 }
 //----------------------------------------------------------------------------
 
-mixin template GenerateImports( ThisType, BaseType )
+string GenerateImports( ThisType, BaseType )()
 {
 	@InheritanceGeneratedVTable
 	@BindNoExportObject
@@ -118,30 +117,30 @@ mixin template GenerateImports( ThisType, BaseType )
 		public import binderoo.binding.functionstub;
 		public import binderoo.objectprivacy;
 
-		static string DOverridesEnumGen( T )()
+		static string DOverridesEnumGen()
 		{
-			string[] strNewOverrides;
-
-			foreach( Function; FunctionDescriptors!( T ) )
+			static if( ThisType.StructType == InheritanceStructType.D )
 			{
-				static if( Function.HasUDA!( BindVirtual ) )
+				string[] strNewOverrides;
+
+				foreach( Function; FunctionDescriptors!( ThisType ) )
 				{
-					enum OldFunctionDecl = "extern( C++ ) " ~ FunctionString!( Function ).DDeclNoLinkage;
-					strNewOverrides ~= "{ \"" ~ OldFunctionDecl ~ "\", \"CPPLinkage_" ~ Function.Name ~ "\" }";
+					static if( Function.HasUDA!( BindVirtual ) )
+					{
+						enum OldFunctionDecl = "extern( C++ ) " ~ FunctionString!( Function ).DDeclNoLinkage;
+						strNewOverrides ~= "{ \"" ~ OldFunctionDecl ~ "\", \"CPPLinkage_" ~ Function.Name ~ "\" }";
+					}
 				}
+
+				return "\t\tenum DOverride[] DOverrides = [ " ~ strNewOverrides.joinWith( ", " ) ~ " ];\n\n";
 			}
-
-			return "enum DOverride[] DOverrides = [ " ~ strNewOverrides.joinWith( ", " ) ~ " ];\n";
+			else
+			{
+				return "\t\tenum DOverride[] DOverrides = [];\n\n";
+			}
 		}
 
-		static if( ThisType.StructType == InheritanceStructType.D )
-		{
-			mixin( DOverridesEnumGen!( ThisType ) );
-		}
-		else
-		{
-			enum DOverride[] DOverrides = [];
-		}
+		mixin( DOverridesEnumGen() );
 
 		static if( is( BaseType == void ) )
 		{
@@ -159,7 +158,7 @@ mixin template GenerateImports( ThisType, BaseType )
 			import binderoo.traits;
 			import binderoo.functiondescriptor;
 
-			enum ThisModule = "public import " ~ moduleName!( ThisType ) ~ ";";
+			enum ThisModule = "\t\tpublic import " ~ moduleName!( ThisType ) ~ ";";
 
 			string[] modules;
 			string[] pointers;
@@ -172,7 +171,7 @@ mixin template GenerateImports( ThisType, BaseType )
 			{
 				static if( __traits( compiles, CurrType.MethodDescriptor ) && !is( CurrType.MethodDescriptor == void ) )
 				{
-					enum CurrTypeModule = "public import " ~ moduleName!( CurrType ) ~ ";";
+					enum CurrTypeModule = "\t\tpublic import " ~ moduleName!( CurrType ) ~ ";";
 
 					if( CurrTypeModule != ThisModule && !modules.canFind( CurrTypeModule ) )
 					{
@@ -196,26 +195,43 @@ mixin template GenerateImports( ThisType, BaseType )
 
 							static if( OverrideFound.length == 0 )
 							{
-								string UDAs = "@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( ThisType, false ).CDecl ~ "::" ~ Function.Name ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", BindRawImport.FunctionKind.Virtual, " ~ orderInTable ~ ", " ~ strIsConst ~ ", " ~ OwnerIsAbstract ~ ", " ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
-								pointers ~= UDAs ~ "\nRawMemberFunctionPointer!( FunctionDescriptor!(" ~ fullyQualifiedName!( Function.ObjectType ) ~ ", \"" ~ Function.Name ~ "\", " ~ to!string( Function.OverloadIndex ) ~ " )" ~ ", " ~ ThisType.stringof ~ " ) " ~ identifier ~ ";";
+								string UDAs = "\t\t@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( ThisType, false ).CDecl ~ "::" ~ Function.Name ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", BindRawImport.FunctionKind.Virtual, " ~ orderInTable ~ ", " ~ strIsConst ~ ", " ~ OwnerIsAbstract ~ ", " ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
+								pointers ~= UDAs ~ "\n\t\tRawMemberFunctionPointer!( FunctionDescriptor!(" ~ fullyQualifiedName!( Function.ObjectType ) ~ ", \"" ~ Function.Name ~ "\", " ~ to!string( Function.OverloadIndex ) ~ " )" ~ ", " ~ ThisType.stringof ~ " ) " ~ identifier ~ ";";
 							}
 							else
 							{
-								pointers ~= "@NoScriptVisibility\nRawMemberFunctionPointer!( FunctionDescriptor!(" ~ fullyQualifiedName!( Function.ObjectType ) ~ ", \"" ~ Function.Name ~ "\", " ~ to!string( Function.OverloadIndex ) ~ " )" ~ ", " ~ ThisType.stringof ~ " ) " ~ identifier ~ " = &" ~ TypeString!( ThisType, false ).DDecl ~ "." ~ OverrideFound[ 0 ].strFunctionCDeclCallName ~ ";";
+								pointers ~= "\t\t@NoScriptVisibility\n\t\tRawMemberFunctionPointer!( FunctionDescriptor!(" ~ fullyQualifiedName!( Function.ObjectType ) ~ ", \"" ~ Function.Name ~ "\", " ~ to!string( Function.OverloadIndex ) ~ " )" ~ ", " ~ ThisType.stringof ~ " ) " ~ identifier ~ " = &" ~ TypeString!( ThisType, false ).DDecl ~ "." ~ OverrideFound[ 0 ].strFunctionCDeclCallName ~ ";";
 							}
 						}
 					}
 				}
 			}
 
+			string result;
 			if( pointers.length > 0 )
 			{
-				return modules.joinWith( "\n" ) ~ "\n\n" ~ pointers.joinWith( "\n\n" ) ~ "\n\n" ~ "enum FunctionCount = " ~ to!string( identifiers.length ) ~ ";\n\n";
+				if( modules.length > 0 )
+				{
+					result ~= modules.joinWith( "\n" ) ~ "\n\n";
+				}
+				result ~= pointers.joinWith( "\n\n" ) ~ "\n\n";
 			}
-			else
-			{
-				return "enum FunctionCount = " ~ to!string( identifiers.length ) ~ ";\n\n";
-			}
+
+			result ~= "\t\tenum FunctionCount = " ~ to!string( identifiers.length ) ~ ";\n\n"
+					~ "\t\tfinal void** getPointer() { return cast(void**)&this; }\n\n";
+
+			return result;
+		}
+
+		static string generateCompleteRepresentation()
+		{
+			return "\t@InheritanceGeneratedVTable\n"
+					~ "\t@BindNoExportObject\n"
+					~ "\tstruct VTable\n"
+					~ "\t{\n"
+					//~ DOverridesEnumGen()
+					~ generateTypeMixin()
+					~ "\t}\n";
 		}
 
 		static string generateAccessorsString()
@@ -237,7 +253,7 @@ mixin template GenerateImports( ThisType, BaseType )
 					{
 						static if( Function.HasUDA!( BindVirtual ) || Function.HasUDA!( BindVirtualDestructor ) )
 						{
-							static if( !Function.HasUDA!( BindDisallow ) )
+							static if( !Function.HasUDA!( BindDisallow ) && DOverrides.find!( ( a, b ) => a.strFunctionSignature == b )( FunctionString!( Function ).DDecl ).length == 0 )
 							{
 
 								string[] parameterNames = [ "thisObj" ];
@@ -248,7 +264,7 @@ mixin template GenerateImports( ThisType, BaseType )
 								}
 
 								string pointerName = "function" ~ to!string( iIndex );
-								functionCalls ~= "@InheritanceVirtualCall pragma( inline ) " ~ FunctionString!( Function ).DDeclNoLinkage ~ " { " ~ ThisType.stringof ~ "* thisObj = cast(" ~ ThisType.stringof ~ "*)&this; return __vtableData." ~ pointerName ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }";
+								functionCalls ~= "\t@InheritanceVirtualCall pragma( inline ) " ~ FunctionString!( Function ).DDeclNoLinkage ~ " { " ~ ThisType.stringof ~ "* thisObj = cast(" ~ ThisType.stringof ~ "*)&this; return __vtableData." ~ pointerName ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }";
 							}
 							++iIndex;
 						}
@@ -259,11 +275,7 @@ mixin template GenerateImports( ThisType, BaseType )
 			return functionCalls.joinWith( "\n" );
 		}
 
-		mixin( generateTypeMixin() );
-
 		version( InheritanceVTableDebug ) pragma( msg, ThisType.stringof ~ " vtable:\n" ~ generateTypeMixin() );
-
-		final void** getPointer() { return cast(void**)&this; }
 	}
 	//------------------------------------------------------------------------
 
@@ -290,7 +302,7 @@ mixin template GenerateImports( ThisType, BaseType )
 			import binderoo.traits;
 			import binderoo.functiondescriptor;
 
-			enum ThisModule = "public import " ~ moduleName!( ThisType ) ~ ";";
+			enum ThisModule = "\t\tpublic import " ~ moduleName!( ThisType ) ~ ";";
 
 			string[] modules;
 			string[] pointers;
@@ -302,7 +314,7 @@ mixin template GenerateImports( ThisType, BaseType )
 			{
 				static if( __traits( compiles, CurrType.MethodDescriptor ) && !is( CurrType.MethodDescriptor == void ) )
 				{
-					enum CurrTypeModule = "public import " ~ moduleName!( CurrType ) ~ ";";
+					enum CurrTypeModule = "\t\tpublic import " ~ moduleName!( CurrType ) ~ ";";
 
 					if( CurrTypeModule != ThisModule && !modules.canFind( CurrTypeModule ) )
 					{
@@ -321,8 +333,8 @@ mixin template GenerateImports( ThisType, BaseType )
 							string orderInTable = to!string( iIndex++ );
 							string identifier = "function" ~ orderInTable;
 
-							string UDAs = "@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( ThisType, false ).CDecl ~ "::" ~ Function.Name ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", " ~ FunctionKind ~ ", " ~ orderInTable ~ ", " ~ IsConst ~ ", " ~ OwnerIsAbstract ~ ", "  ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
-							pointers ~= UDAs ~ "\nRawMemberFunctionPointer!( FunctionDescriptor!(" ~ fullyQualifiedName!( Function.ObjectType ) ~ ", \"" ~ Function.Name ~ "\", " ~ to!string( Function.OverloadIndex ) ~ " )" ~ ", " ~ ThisType.stringof ~ " ) " ~ identifier ~ ";";
+							string UDAs = "\t\t@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( ThisType, false ).CDecl ~ "::" ~ Function.Name ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", " ~ FunctionKind ~ ", " ~ orderInTable ~ ", " ~ IsConst ~ ", " ~ OwnerIsAbstract ~ ", "  ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
+							pointers ~= UDAs ~ "\n\t\tRawMemberFunctionPointer!( FunctionDescriptor!(" ~ fullyQualifiedName!( Function.ObjectType ) ~ ", \"" ~ Function.Name ~ "\", " ~ to!string( Function.OverloadIndex ) ~ " )" ~ ", " ~ ThisType.stringof ~ " ) " ~ identifier ~ ";";
 						}
 					}
 				}
@@ -330,12 +342,25 @@ mixin template GenerateImports( ThisType, BaseType )
 
 			if( pointers.length > 0 )
 			{
-				return modules.joinWith( "\n" ) ~ "\n" ~ pointers.joinWith( "\n\n" ) ~ "\n";
+				if( modules.length > 0 )
+				{
+					return modules.joinWith( "\n" ) ~ "\n" ~ pointers.joinWith( "\n\n" ) ~ "\n";
+				}
+				return pointers.joinWith( "\n\n" ) ~ "\n";
 			}
 			else
 			{
 				return "";
 			}
+		}
+
+		static string generateCompleteRepresentation()
+		{
+			return "\t@BindNoExportObject\n"
+					~ "\tstruct MethodTable\n"
+					~ "\t{\n"
+					~ generateTypeMixin()
+					~ "\t}\n";
 		}
 
 		static string generateAccessorsString()
@@ -371,11 +396,11 @@ mixin template GenerateImports( ThisType, BaseType )
 
 								static if( Function.IsStatic )
 								{
-									functionCalls ~= "pragma( inline ) static " ~ FunctionString!( Function ).DDeclNoLinkage ~ " { return __methodtableData.function" ~ to!string( iIndex ) ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }";
+									functionCalls ~= "\tpragma( inline ) static " ~ FunctionString!( Function ).DDeclNoLinkage ~ " { return __methodtableData.function" ~ to!string( iIndex ) ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }";
 								}
 								else
 								{
-									functionCalls ~= "pragma( inline ) " ~ FunctionString!( Function ).DDeclNoLinkage ~ " { " ~ ThisType.stringof ~ "* thisObj = cast(" ~ ThisType.stringof ~ "*)&this; return __methodtableData.function" ~ to!string( iIndex ) ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }";
+									functionCalls ~= "\tpragma( inline ) " ~ FunctionString!( Function ).DDeclNoLinkage ~ " { " ~ ThisType.stringof ~ "* thisObj = cast(" ~ ThisType.stringof ~ "*)&this; return __methodtableData.function" ~ to!string( iIndex ) ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }";
 
 									static if( Function.HasUDA!( BindGetter ) )
 									{
@@ -384,7 +409,7 @@ mixin template GenerateImports( ThisType, BaseType )
 
 										enum PropertyName = Function.GetUDA!( BindGetter ).strPropertyName;
 
-										functionCalls ~= "pragma( inline ) @property " ~ PropertyName ~ "() { auto thisObj = &this; return __methodtableData.function" ~ to!string( iIndex ) ~ "( thisObj ); }";
+										functionCalls ~= "\tpragma( inline ) @property " ~ PropertyName ~ "() { auto thisObj = &this; return __methodtableData.function" ~ to!string( iIndex ) ~ "( thisObj ); }";
 									}
 
 									static if( Function.HasUDA!( BindSetter ) )
@@ -393,7 +418,7 @@ mixin template GenerateImports( ThisType, BaseType )
 
 										enum PropertyName = Function.GetUDA!( BindSetter ).strPropertyName;
 
-										functionCalls ~= "pragma( inline ) @property " ~ PropertyName ~ "( " ~ Function.Parameter!( 0 ).Type.stringof ~ " val ) { auto thisObj = &this; __methodtableData.function" ~ to!string( iIndex ) ~ "( thisObj, val ); return val; }";
+										functionCalls ~= "\tpragma( inline ) @property " ~ PropertyName ~ "( " ~ Function.Parameter!( 0 ).Type.stringof ~ " val ) { auto thisObj = &this; __methodtableData.function" ~ to!string( iIndex ) ~ "( thisObj, val ); return val; }";
 									}
 								}
 							}
@@ -406,19 +431,29 @@ mixin template GenerateImports( ThisType, BaseType )
 			return functionCalls.joinWith( "\n" );
 		}
 
-		mixin( generateTypeMixin() );
-
 		version( InheritanceMTableDebug ) pragma( msg, ThisType.stringof ~ " method table:\n" ~ generateTypeMixin() );
 	}
 
-	__gshared VTable		__vtableData;
+/+	__gshared VTable		__vtableData;
 	__gshared MethodTable	__methodtableData;
 
 	version( InheritanceVTableDebug ) pragma( msg, ThisType.stringof ~ " accessors:\n" ~ VTable.generateAccessorsString() ~ "\n" );
 	mixin( VTable.generateAccessorsString() );
 
 	version( InheritanceMTableDebug ) pragma( msg, MethodTable.generateAccessorsString() );
-	mixin( MethodTable.generateAccessorsString() );
+	mixin( MethodTable.generateAccessorsString() );+/
+
+	return VTable.generateCompleteRepresentation()
+			~ "\n"
+			~ MethodTable.generateCompleteRepresentation()
+			~ "\n"
+			~ "\t__gshared VTable		__vtableData;\n"
+			~ "\t__gshared MethodTable	__methodtableData;\n"
+			~ "\n"
+			~ VTable.generateAccessorsString()
+			~ "\n"
+			~ MethodTable.generateAccessorsString()
+			~ "\n";
 }
 //----------------------------------------------------------------------------
 
@@ -449,26 +484,128 @@ string DStructOverrideSetup( T )()
 
 			static if( Function.HasReturnType )
 			{
-				enum NewFunctionStub = "@BindOverrides( \"" ~ OldFunctionDecl ~ "\" )\n"
-										~ NewFunctionDecl ~ "\n"
-										~ "{\n"
-										~ "\treturn thisObj." ~ Function.Name ~ "( " ~ FunctionString!( Function ).ParameterNames ~ " );\n"
-										~ "}\n";
+				enum NewFunctionStub = "\t@BindOverrides( \"" ~ OldFunctionDecl ~ "\" )\n"
+										~ "\t" ~ NewFunctionDecl ~ "\n"
+										~ "\t{\n"
+										~ "\t\treturn thisObj." ~ Function.Name ~ "( " ~ FunctionString!( Function ).ParameterNames ~ " );\n"
+										~ "\t}\n";
 
 			}
 			else
 			{
-				enum NewFunctionStub = "@BindOverrides( \"" ~ OldFunctionDecl ~ "\" )\n"
-										~ NewFunctionDecl ~ "\n"
-										~ "{\n"
-										~ "\tthisObj." ~ Function.Name ~ "( " ~ FunctionString!( Function ).ParameterNames ~ " );\n"
-										~ "}\n";
+				enum NewFunctionStub = "\t@BindOverrides( \"" ~ OldFunctionDecl ~ "\" )\n"
+										~ "\t" ~ NewFunctionDecl ~ "\n"
+										~ "\t{\n"
+										~ "\t\tthisObj." ~ Function.Name ~ "( " ~ FunctionString!( Function ).ParameterNames ~ " );\n"
+										~ "\t}\n";
 			}
 			strNewStubs ~= NewFunctionStub;
 		}
 	}
 
 	return strNewStubs.joinWith( "\n" );
+}
+//----------------------------------------------------------------------------
+
+string GenerateInterfaceRepresentation( T, Base, InheritanceStructType structType )()
+{
+	import binderoo.variabledescriptor;
+	import binderoo.functiondescriptor;
+
+	string typeGen()
+	{
+		string[] outputs;
+
+		foreach( UDA; TypeDescriptor!( T ).UDAs )
+		{
+			outputs ~= "@" ~ UDA.stringof;
+		}
+
+		static if( is( T == struct ) )
+		{
+			outputs ~= "struct " ~ T.stringof;
+		}
+		else if( is( T == class ) )
+		{
+			outputs ~= "class " ~ T.stringof;
+		}
+
+		return outputs.joinWith( "\n" );
+	}
+
+	string variableGen()
+	{
+		string[] outputs;
+		foreach( Variable; VariableDescriptors!( T ) )
+		{
+			string[] varDecl;
+
+			foreach( UDA; Variable.UDAs )
+			{
+				varDecl ~= "@" ~ UDA.stringof;
+			}
+
+			varDecl ~= Variable.Type.Name;
+			varDecl ~= Variable.Name;
+
+			outputs ~= "\t" ~ varDecl.joinWith( " " ) ~ ";";
+		}
+
+		return outputs.joinWith( "\n" ) ~ "\n";
+	}
+
+	string functionGen()
+	{
+		string[] outputs;
+		foreach( Function; FunctionDescriptors!( T ) )
+		{
+			string[] funcDecl;
+
+			foreach( UDA; Function.UDAs )
+			{
+				funcDecl ~= "@" ~ UDA.stringof;
+			}
+
+			funcDecl ~= FunctionString!( Function ).DDecl ~ ";";
+
+			outputs ~= "\t" ~ funcDecl.joinWith( " " );
+		}
+
+		return outputs.joinWith( "\n" ) ~ "\n";
+	}
+
+	static if( !is( Base == void ) )
+	{
+		enum BaseAccessors = GenerateBaseAccessors!( Base ) ~ "\n";
+	}
+	else
+	{
+		enum BaseAccessors = "";
+	}
+
+	static if( structType == InheritanceStructType.D )
+	{
+		enum CPPOverrides = DStructOverrideSetup!( T )() ~ "\n";
+	}
+	else
+	{
+		enum CPPOverrides = "";
+	}
+
+	enum OutputObject = typeGen() ~ "\n"
+						~ "{\n"
+						~ "\tenum StructType = " ~ structType.stringof ~ ";\n\n"
+						~ GenerateImports!( T, Base )
+						~ "\n"
+						~ functionGen()
+						~ "\n"
+						~ variableGen()
+						~ "\n"
+						~ BaseAccessors
+						~ CPPOverrides
+						~ "}\n";
+
+	return OutputObject;
 }
 //----------------------------------------------------------------------------
 
@@ -480,9 +617,8 @@ mixin template DStructInherits( T )
 	version( InheritanceInspectionDebug ) pragma( msg, typeof( this ).stringof ~ " base accessors:\n" ~ GenerateBaseAccessors!( T ) );
 
 	mixin( DStructOverrideSetup!( typeof( this ) )() );
-
 	mixin( GenerateBaseAccessors!( T ) );
-	mixin GenerateImports!( typeof( this ), T );
+	mixin( GenerateImports!( typeof( this ), T )() );
 
 	static if( T.VTable.FunctionCount > 0 )
 	{
@@ -508,6 +644,7 @@ mixin template DStructInherits( T )
 		return newObj;
 	}+/
 
+	pragma( msg, GenerateInterfaceRepresentation!( typeof( this ), T, StructType )() );
 }
 //----------------------------------------------------------------------------
 
@@ -522,8 +659,7 @@ mixin template CPPStructInherits( T, NewMethods = void )
 	version( InheritanceInspectionDebug ) pragma( msg, typeof( this ).stringof ~ " base accessors:\n" ~ GenerateBaseAccessors!( T ) );
 
 	mixin( GenerateBaseAccessors!( T ) );
-
-	mixin GenerateImports!( typeof( this ), T );
+	mixin( GenerateImports!( typeof( this ), T )() );
 
 	static if( T.VTable.FunctionCount > 0 )
 	{
@@ -570,6 +706,8 @@ mixin template CPPStructInherits( T, NewMethods = void )
 		typeof( this ) newObj;
 		return newObj;
 	}
+
+	pragma( msg, GenerateInterfaceRepresentation!( typeof( this ), T, StructType )() );
 }
 //----------------------------------------------------------------------------
 
@@ -581,7 +719,7 @@ mixin template CPPStructBase( NewMethods = void )
 
 	alias MethodDescriptor		= NewMethods;
 
-	mixin GenerateImports!( typeof( this ), void );
+	mixin( GenerateImports!( typeof( this ), void )() );
 
 	static if( VTable.FunctionCount > 0 )
 	{
@@ -602,6 +740,8 @@ mixin template CPPStructBase( NewMethods = void )
 		typeof( this ) newObj;
 		return newObj;
 	}
+
+	pragma( msg, GenerateInterfaceRepresentation!( typeof( this ), void, StructType )() );
 }
 //----------------------------------------------------------------------------
 

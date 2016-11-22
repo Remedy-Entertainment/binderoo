@@ -81,6 +81,9 @@ struct FunctionDescriptor( alias symbol, size_t iOverloadIndex = 0 )
 	}
 	//------------------------------------------------------------------------
 
+	alias			UDAs							= TypeTuple!( __traits( getAttributes, symbol ) );
+	//------------------------------------------------------------------------
+
 	enum FunctionAttribute : uint
 	{
 		Invalid				= 0b0000000000000000,
@@ -254,6 +257,9 @@ struct FunctionDescriptor( T, string symbolName, size_t iSymbolIndex )
 			alias GetUDA = void;
 		}
 	}
+	//------------------------------------------------------------------------
+
+	alias			UDAs							= TypeTuple!( __traits( getAttributes, __traits( getOverloads, T, symbolName )[ iSymbolIndex ] ) );
 	//------------------------------------------------------------------------
 
 	enum FunctionAttribute : uint
@@ -601,6 +607,7 @@ struct FunctionString( Desc ) if( IsFunctionDescriptor!( Desc )() )
 	private static string generateFullyQualifiedName( alias stringSymbol, alias renameString = TypeDescriptor.FunctionName )()
 	{
 		enum ConstString = Desc.IsConst ? " const" : "";
+		enum StaticString = Desc.IsStatic ? "static " : "";
 
 		string generateParameterString( uint iIndex )()
 		{
@@ -624,7 +631,7 @@ struct FunctionString( Desc ) if( IsFunctionDescriptor!( Desc )() )
 			enum namespaceString = "";
 		}
 
-		return mixin( "TypeString!( ReturnDescriptor )." ~ stringSymbol ) ~ pointerString ~ renameString ~ "( " ~ generateParameterString!( 0 )() ~ ")" ~ ConstString;
+		return StaticString ~ mixin( "TypeString!( ReturnDescriptor )." ~ stringSymbol ) ~ pointerString ~ renameString ~ "( " ~ generateParameterString!( 0 )() ~ ")" ~ ConstString;
 	};
 	//------------------------------------------------------------------------
 
