@@ -95,11 +95,12 @@ void printUsageScreen()
 	printf( "\n" );
 	printf( "Usage: binderoo_util [-g class] [-gA] [-f folder]\n" );
 	printf( "\n" );
-	printf( "  -f folder    Add folders to search for DLL (use multiple -f definitions)\n" );
-	printf( "  -g class     Generate C++ style bindings for provided class\n" );
-	printf( "  -gA          Generate C++ style bindings for all classes in all DLLs\n" );
-	printf( "  -c           Call a function\n" );
-	printf( "  -p           Parameter for function call (use multiple -p definitions)\n" );
+	printf( "  -f folder      Add folders to search for DLL (use multiple -f definitions)\n" );
+	printf( "  -g class       Generate C++ style bindings for provided class\n" );
+	printf( "  -gA            Generate C++ style bindings for all classes in all DLLs\n" );
+	printf( "  -gAV versions  As -gA, except with specified versions\n" );
+	printf( "  -c             Call a function\n" );
+	printf( "  -p             Parameter for function call (use multiple -p definitions)\n" );
 	printf( "\n" );
 }
 //----------------------------------------------------------------------------
@@ -128,6 +129,8 @@ int main( int argc, char** argv )
 		int					eCurrParamMode = Options::None;
 		int					eFoundParams = Options::None;
 
+		const char*			pCBindingsForAllVersions = nullptr;
+
 		for( int iCurrArg = 1; iCurrArg < argc && iSearchFolderCount < MaxArgCount; ++iCurrArg )
 		{
 			switch( eCurrParamMode )
@@ -144,6 +147,10 @@ int main( int argc, char** argv )
 								if( argv[ iCurrArg ][ 2 ] == 'A' )
 								{
 									eFoundParams |= Options::ListCStyleBindingsForAll;
+									if( argv[ iCurrArg ][ 3 ] == 'V' )
+									{
+										eCurrParamMode = Options::ListCStyleBindingsForAll;
+									}
 								}
 								else
 								{
@@ -154,6 +161,7 @@ int main( int argc, char** argv )
 							break;
 
 						case 'f':
+							eFoundParams |= Options::SearchFolder;
 							eCurrParamMode = Options::SearchFolder;
 							break;
 
@@ -163,8 +171,10 @@ int main( int argc, char** argv )
 							break;
 
 						case 'p':
+							eFoundParams |= Options::FunctionCallParameter;
 							eCurrParamMode = Options::FunctionCallParameter;
 							break;
+
 						default:
 							iErrorParameters[ iErrorCount++ ] = iCurrArg;
 							break;
@@ -179,6 +189,11 @@ int main( int argc, char** argv )
 
 			case Options::SearchFolder:
 				searchFolders[ iSearchFolderCount++ ] = binderoo::DString( argv[ iCurrArg ], strlen( argv[ iCurrArg ] ) );
+				eCurrParamMode = Options::None;
+				break;
+
+			case Options::ListCStyleBindingsForAll:
+				pCBindingsForAllVersions = argv[ iCurrArg ];
 				eCurrParamMode = Options::None;
 				break;
 
@@ -245,7 +260,7 @@ int main( int argc, char** argv )
 
 			if( eFoundParams & Options::ListCStyleBindingsForAll )
 			{
-				const char* pDeclarations = host.generateCPPStyleBindingDeclarationsForAllObjects();
+				const char* pDeclarations = host.generateCPPStyleBindingDeclarationsForAllObjects( pCBindingsForAllVersions );
 				test_unaligned_free( (void*)pDeclarations );
 			}
 

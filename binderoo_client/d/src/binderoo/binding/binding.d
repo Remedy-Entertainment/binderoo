@@ -500,7 +500,7 @@ public string[] generateCPPStyleBindingDeclaration( BoundFunction[] functions )
 }
 //----------------------------------------------------------------------------
 
-public string generateCPPStyleBindingDeclarationsForAllObjects()
+public string generateCPPStyleBindingDeclarationsForAllObjects( string strVersion )
 {
 	BoundFunction[] functions;
 
@@ -636,11 +636,17 @@ export extern( C ) void destroyObjectByHash( ulong objectHash, void* pObj )
 
 alias BindingRawAllocator = extern( C ) void* function( size_t size );
 
-export extern( C ) const(char)* generateCPPStyleBindingDeclarationsForAllObjects( BindingRawAllocator allocator )
+export extern( C ) const(char)* generateCPPStyleBindingDeclarationsForAllObjects( BindingRawAllocator allocator, const char* pVersion )
 {
 	import core.stdc.string;
 
-	string fullDeclaration = generateCPPStyleBindingDeclarationsForAllObjects();
+	string strVersion;
+	if( pVersion )
+	{
+		strVersion = cast(string)pVersion[ 0 .. strlen( pVersion ) ];
+	}
+
+	string fullDeclaration = generateCPPStyleBindingDeclarationsForAllObjects( strVersion );
 
 	size_t outputSize = fullDeclaration.length + 1;
 	char* pOutput = cast(char*)allocator( outputSize );

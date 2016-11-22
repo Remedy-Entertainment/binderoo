@@ -136,7 +136,7 @@ namespace binderoo
 
 		// Returns a string allocated with your unaligned_alloc function that represents
 		// the required #defines to bind a C++ object to the system
-		const char* generateCPPStyleBindingDeclarationsForAllObjects();
+		const char* generateCPPStyleBindingDeclarationsForAllObjects( const char* pVersions );
 		//--------------------------------------------------------------------
 
 		static BIND_INLINE Host*			getActiveHost()						{ return pActiveHost; }

@@ -66,14 +66,14 @@ namespace binderoo
 	typedef Containers< AllocatorSpace::Host >::InternalString												InternalString;
 	typedef std::vector< InternalString, binderoo::Allocator< AllocatorSpace::Host, InternalString > >		InternalStringVector;
 
-	typedef void					( BIND_C_CALL *ImportFunctionsFromPtr )									( binderoo::Slice< binderoo::BoundFunction > );
-	typedef void					( BIND_C_CALL *GetExportedObjectsPtr )									( binderoo::Slice< binderoo::BoundObject >* );
-	typedef void					( BIND_C_CALL *GetExportedFunctionsPtr )								( binderoo::Slice< binderoo::BoundFunction >* );
-	typedef void*					( BIND_C_CALL *CreateObjectByNamePtr )									( DString );
-	typedef void*					( BIND_C_CALL *CreateObjectByHashPtr )									( uint64_t );
-	typedef void					( BIND_C_CALL *DestroyObjectByNamePtr )									( DString, void* );
-	typedef void					( BIND_C_CALL *DestroyObjectByHashPtr )									( uint64_t, void* );
-	typedef const char*				( BIND_C_CALL *GenerateBindingDeclarationsForAllObjectsPtr )			( UnalignedAllocatorFunc allocator );
+	typedef void					( BIND_C_CALL *ImportFunctionsFromPtr )									( binderoo::Slice< binderoo::BoundFunction > functions );
+	typedef void					( BIND_C_CALL *GetExportedObjectsPtr )									( binderoo::Slice< binderoo::BoundObject >* pOutExportedObjects );
+	typedef void					( BIND_C_CALL *GetExportedFunctionsPtr )								( binderoo::Slice< binderoo::BoundFunction >* pOutExportedFunctions );
+	typedef void*					( BIND_C_CALL *CreateObjectByNamePtr )									( DString strName );
+	typedef void*					( BIND_C_CALL *CreateObjectByHashPtr )									( uint64_t uNameHash );
+	typedef void					( BIND_C_CALL *DestroyObjectByNamePtr )									( DString, void* pObject );
+	typedef void					( BIND_C_CALL *DestroyObjectByHashPtr )									( uint64_t, void* pObject );
+	typedef const char*				( BIND_C_CALL *GenerateBindingDeclarationsForAllObjectsPtr )			( UnalignedAllocatorFunc allocator, const char* pVersion );
 	//------------------------------------------------------------------------
 
 	enum class DynamicLibStatus : int
@@ -227,8 +227,8 @@ namespace binderoo
 		void						collectBoundObjects();
 		//--------------------------------------------------------------------
 
-		void						loadDynamicLibraries();
 		bool						loadDynamicLibrary( HostDynamicLib& lib );
+		void						unloadDynamicLibrary( HostDynamicLib& lib );
 		//--------------------------------------------------------------------
 
 		void						registerImportedClassInstance( ImportedBase* pInstance );
@@ -246,7 +246,7 @@ namespace binderoo
 		const HostBoundObject*		getImportedObjectDetails( const char* pName ) const;
 		//--------------------------------------------------------------------
 
-		const char*					generateCPPStyleBindingDeclarationsForAllObjects();
+		const char*					generateCPPStyleBindingDeclarationsForAllObjects( const char* pVersions );
 		//--------------------------------------------------------------------
 
 	private:
@@ -353,9 +353,9 @@ const binderoo::BoundFunction* binderoo::Host::getImportedFunctionDetails( const
 }
 //--------------------------------------------------------------------
 
-const char* binderoo::Host::generateCPPStyleBindingDeclarationsForAllObjects()
+const char* binderoo::Host::generateCPPStyleBindingDeclarationsForAllObjects( const char* pVersions )
 {
-	return pImplementation->generateCPPStyleBindingDeclarationsForAllObjects();
+	return pImplementation->generateCPPStyleBindingDeclarationsForAllObjects( pVersions );
 }
 //----------------------------------------------------------------------------
 //----------------------------------------------------------------------------
@@ -453,31 +453,7 @@ void binderoo::HostImplementation::performUnload()
 
 	for( HostDynamicLib& lib : vecDynamicLibs )
 	{
-		HANDLE hProcess = GetCurrentProcess();
-
-		auto pRelevantFunction = &binderoo::HostImplementation::performUnload;
-
-		DWORD64 dwModuleBase = SymGetModuleBase64( hProcess, *(DWORD64*)&pRelevantFunction );
-		if( dwModuleBase != 0 )
-		{
-			SymUnloadModule64( hProcess, dwModuleBase );
-		}
-
-		FreeLibrary( lib.hModule );
-
-		InternalString strErrorMessage = "Failed to delete ";
-		if( !DeleteFile( lib.strScratchSymbols.c_str() ) )
-		{
-			logWarning( (strErrorMessage + lib.strScratchSymbols ).c_str() );
-		}
-		if( !DeleteFile( lib.strScratchLib.c_str() ) )
-		{
-			logWarning( (strErrorMessage + lib.strScratchSymbols ).c_str() );
-		}
-		if( !RemoveDirectory( lib.strScratchPath.c_str() ) )
-		{
-			logWarning( (strErrorMessage + lib.strScratchSymbols ).c_str() );
-		}
+		unloadDynamicLibrary( lib );
 	}
 
 	vecDynamicLibs.clear();
@@ -793,12 +769,44 @@ bool binderoo::HostImplementation::loadDynamicLibrary( binderoo::HostDynamicLib&
 		}
 		else
 		{
-			lib.eStatus					= DynamicLibStatus::CoreInterfaceNotFound;
-			FreeLibrary( hModule );
+			unloadDynamicLibrary( lib );
+			lib.eStatus = DynamicLibStatus::CoreInterfaceNotFound;
 		}
 	}
 
 	return false;
+}
+//----------------------------------------------------------------------------
+
+void binderoo::HostImplementation::unloadDynamicLibrary( binderoo::HostDynamicLib& lib )
+{
+	HANDLE hProcess = GetCurrentProcess();
+
+	auto pRelevantFunction = &binderoo::HostImplementation::performUnload;
+
+	DWORD64 dwModuleBase = SymGetModuleBase64( hProcess, *(DWORD64*)&pRelevantFunction );
+	if( dwModuleBase != 0 )
+	{
+		SymUnloadModule64( hProcess, dwModuleBase );
+	}
+
+	FreeLibrary( lib.hModule );
+
+	InternalString strErrorMessage = "Failed to delete ";
+	if( !DeleteFile( lib.strScratchSymbols.c_str() ) )
+	{
+		logWarning( (strErrorMessage + lib.strScratchSymbols ).c_str() );
+	}
+	if( !DeleteFile( lib.strScratchLib.c_str() ) )
+	{
+		logWarning( (strErrorMessage + lib.strScratchSymbols ).c_str() );
+	}
+	if( !RemoveDirectory( lib.strScratchPath.c_str() ) )
+	{
+		logWarning( (strErrorMessage + lib.strScratchSymbols ).c_str() );
+	}
+
+	lib.eStatus = DynamicLibStatus::Unloaded;
 }
 //----------------------------------------------------------------------------
 
@@ -939,9 +947,37 @@ const binderoo::HostBoundObject* binderoo::HostImplementation::getImportedObject
 //----------------------------------------------------------------------------
 //----------------------------------------------------------------------------
 
-const char* binderoo::HostImplementation::generateCPPStyleBindingDeclarationsForAllObjects()
+const char* binderoo::HostImplementation::generateCPPStyleBindingDeclarationsForAllObjects( const char* pVersions )
 {
+	InternalStringVector vecVersions;
 	InternalStringVector vecAllDeclarations;
+
+	const char* pVersionCurr = pVersions;
+	const char* pVersionStart = pVersions;
+
+	while( pVersionCurr )
+	{
+		if( *pVersionCurr )
+		{
+			if( *pVersionCurr == ';' )
+			{
+				vecVersions.push_back( InternalString( pVersionStart, (size_t)( pVersionCurr - pVersionStart ) ) );
+				pVersionStart = ++pVersionCurr;
+			}
+			else
+			{
+				++pVersionCurr;
+			}
+		}
+		else
+		{
+			if( pVersionCurr != pVersionStart )
+			{
+				vecVersions.push_back( InternalString( pVersionStart, (size_t)( pVersionCurr - pVersionStart ) ) );
+			}
+			pVersionCurr = nullptr;
+		}
+	}
 
 	const char* const pSeparator = "\n\n";
 	const size_t uSeparatorLength = 2;
@@ -951,7 +987,7 @@ const char* binderoo::HostImplementation::generateCPPStyleBindingDeclarationsFor
 
 	for( auto& lib : vecDynamicLibs )
 	{
-		const char* pDeclarations = lib.generateCPPStyleBindingDeclarationsForAllObjects( configuration.unaligned_alloc );
+		const char* pDeclarations = lib.generateCPPStyleBindingDeclarationsForAllObjects( configuration.unaligned_alloc, nullptr );
 
 		InternalString strDeclarations( pDeclarations, strlen( pDeclarations ) );
 		vecAllDeclarations.push_back( strDeclarations );
