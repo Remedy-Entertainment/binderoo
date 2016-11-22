@@ -325,7 +325,7 @@ namespace binderoo
 				strVersions += Containers< AllocatorSpace::Service >::InternalString( token.data(), token.length() );
 			}
 
-			Containers< AllocatorSpace::Service >::InternalString strArguments = "-v -m64 -debug -g -L/DLL";
+			Containers< AllocatorSpace::Service >::InternalString strArguments = "-d -v -m64 -debug -g -L/DLL";
 			strArguments += strOutput;
 			strArguments += strDeps;
 			strArguments += strVersions;
