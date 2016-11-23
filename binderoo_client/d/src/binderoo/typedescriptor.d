@@ -209,7 +209,7 @@ template CTypeString( T )
 
 	static if( isPointer!( T ) )
 	{
-		enum CTypeString = CTypeString!( PointerTarget!( T ) ) ~ "*";
+		enum CTypeString = CTypeString!( binderoo.traits.PointerTarget!( T ) ) ~ "*";
 	}
 	else static if( IsConst!( T ) || IsImmutable!( T ) )
 	{

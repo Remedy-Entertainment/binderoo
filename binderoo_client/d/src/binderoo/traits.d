@@ -276,6 +276,12 @@ template PointerOf( T )
 }
 //----------------------------------------------------------------------------
 
+template PointerTarget( T : T* )
+{
+	alias PointerTarget = T;
+}
+//----------------------------------------------------------------------------
+
 template IsMutable( T )
 {
 	enum IsMutable = !( is( T == const )
