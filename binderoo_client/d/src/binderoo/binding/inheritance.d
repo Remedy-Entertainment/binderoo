@@ -39,6 +39,7 @@ version( InheritanceDebug )
 //	version = InheritanceInspectionDebug;
 //	version = InheritanceVTableDebug;
 //	version = InheritanceMTableDebug;
+//	version = InheritanceInterfaceInspection;
 }
 version = InheritanceMSVC;
 
@@ -264,7 +265,7 @@ string GenerateImports( ThisType, BaseType )()
 								}
 
 								string pointerName = "function" ~ to!string( iIndex );
-								functionCalls ~= "\t@InheritanceVirtualCall pragma( inline ) " ~ FunctionString!( Function ).DDeclNoLinkage ~ " { " ~ ThisType.stringof ~ "* thisObj = cast(" ~ ThisType.stringof ~ "*)&this; return __vtableData." ~ pointerName ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }";
+								functionCalls ~= "\t@InheritanceVirtualCall pragma( inline ) " ~ FunctionString!( Function ).DDeclNoLinkage ~ "\n\t{ " ~ ThisType.stringof ~ "* thisObj = cast(" ~ ThisType.stringof ~ "*)&this; return __vtableData." ~ pointerName ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }\n";
 							}
 							++iIndex;
 						}
@@ -344,9 +345,9 @@ string GenerateImports( ThisType, BaseType )()
 			{
 				if( modules.length > 0 )
 				{
-					return modules.joinWith( "\n" ) ~ "\n" ~ pointers.joinWith( "\n\n" ) ~ "\n";
+					return modules.joinWith( "\n" ) ~ "\n\n" ~ pointers.joinWith( "\n\n" ) ~ "\n\n";
 				}
-				return pointers.joinWith( "\n\n" ) ~ "\n";
+				return pointers.joinWith( "\n\n" ) ~ "\n\n";
 			}
 			else
 			{
@@ -396,11 +397,11 @@ string GenerateImports( ThisType, BaseType )()
 
 								static if( Function.IsStatic )
 								{
-									functionCalls ~= "\tpragma( inline ) static " ~ FunctionString!( Function ).DDeclNoLinkage ~ " { return __methodtableData.function" ~ to!string( iIndex ) ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }";
+									functionCalls ~= "\t@InheritanceMethodCall pragma( inline ) " ~ FunctionString!( Function ).DDeclNoLinkage ~ "\n\t{ return __methodtableData.function" ~ to!string( iIndex ) ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }\n";
 								}
 								else
 								{
-									functionCalls ~= "\tpragma( inline ) " ~ FunctionString!( Function ).DDeclNoLinkage ~ " { " ~ ThisType.stringof ~ "* thisObj = cast(" ~ ThisType.stringof ~ "*)&this; return __methodtableData.function" ~ to!string( iIndex ) ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }";
+									functionCalls ~= "\t@InheritanceMethodCall pragma( inline ) " ~ FunctionString!( Function ).DDeclNoLinkage ~ "\n\t{ " ~ ThisType.stringof ~ "* thisObj = cast(" ~ ThisType.stringof ~ "*)&this; return __methodtableData.function" ~ to!string( iIndex ) ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }\n";
 
 									static if( Function.HasUDA!( BindGetter ) )
 									{
@@ -409,7 +410,7 @@ string GenerateImports( ThisType, BaseType )()
 
 										enum PropertyName = Function.GetUDA!( BindGetter ).strPropertyName;
 
-										functionCalls ~= "\tpragma( inline ) @property " ~ PropertyName ~ "() { auto thisObj = &this; return __methodtableData.function" ~ to!string( iIndex ) ~ "( thisObj ); }";
+										functionCalls ~= "\t@InheritanceMethodCall pragma( inline ) @property " ~ PropertyName ~ "()\n\t{ auto thisObj = &this; return __methodtableData.function" ~ to!string( iIndex ) ~ "( thisObj ); }\n";
 									}
 
 									static if( Function.HasUDA!( BindSetter ) )
@@ -418,7 +419,7 @@ string GenerateImports( ThisType, BaseType )()
 
 										enum PropertyName = Function.GetUDA!( BindSetter ).strPropertyName;
 
-										functionCalls ~= "\tpragma( inline ) @property " ~ PropertyName ~ "( " ~ Function.Parameter!( 0 ).Type.stringof ~ " val ) { auto thisObj = &this; __methodtableData.function" ~ to!string( iIndex ) ~ "( thisObj, val ); return val; }";
+										functionCalls ~= "\t@InheritanceMethodCall pragma( inline ) @property " ~ PropertyName ~ "( " ~ Function.Parameter!( 0 ).Type.stringof ~ " val )\n\t{ auto thisObj = &this; __methodtableData.function" ~ to!string( iIndex ) ~ "( thisObj, val ); return val; }\n";
 									}
 								}
 							}
@@ -559,16 +560,19 @@ string GenerateInterfaceRepresentation( T, Base, InheritanceStructType structTyp
 		string[] outputs;
 		foreach( Function; FunctionDescriptors!( T ) )
 		{
-			string[] funcDecl;
-
-			foreach( UDA; Function.UDAs )
+			static if( !Function.HasUDA!( InheritanceVirtualCall ) && !Function.HasUDA!( InheritanceMethodCall ) )
 			{
-				funcDecl ~= "@" ~ UDA.stringof;
+				string[] funcDecl;
+
+				foreach( UDA; Function.UDAs )
+				{
+					funcDecl ~= "@" ~ UDA.stringof;
+				}
+
+				funcDecl ~= FunctionString!( Function ).DDecl ~ ";";
+
+				outputs ~= "\t" ~ funcDecl.joinWith( " " );
 			}
-
-			funcDecl ~= FunctionString!( Function ).DDecl ~ ";";
-
-			outputs ~= "\t" ~ funcDecl.joinWith( " " );
 		}
 
 		return outputs.joinWith( "\n" ) ~ "\n";
@@ -644,7 +648,7 @@ mixin template DStructInherits( T )
 		return newObj;
 	}+/
 
-	pragma( msg, GenerateInterfaceRepresentation!( typeof( this ), T, StructType )() );
+	version( InheritanceInterfaceInspection ) pragma( msg, GenerateInterfaceRepresentation!( typeof( this ), T, StructType )() );
 }
 //----------------------------------------------------------------------------
 
@@ -707,7 +711,7 @@ mixin template CPPStructInherits( T, NewMethods = void )
 		return newObj;
 	}
 
-	pragma( msg, GenerateInterfaceRepresentation!( typeof( this ), T, StructType )() );
+	version( InheritanceInterfaceInspection ) pragma( msg, GenerateInterfaceRepresentation!( typeof( this ), T, StructType )() );
 }
 //----------------------------------------------------------------------------
 
@@ -741,7 +745,7 @@ mixin template CPPStructBase( NewMethods = void )
 		return newObj;
 	}
 
-	pragma( msg, GenerateInterfaceRepresentation!( typeof( this ), void, StructType )() );
+	version( InheritanceInterfaceInspection ) pragma( msg, GenerateInterfaceRepresentation!( typeof( this ), void, StructType )() );
 }
 //----------------------------------------------------------------------------
 
