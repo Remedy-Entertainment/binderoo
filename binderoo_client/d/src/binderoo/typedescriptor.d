@@ -261,11 +261,25 @@ struct TypeString( T, bool bIsRef = false )
 	{
 		return T ~ ( bIsRef ? "&" : "" );
 	}
+
+	static private string unqualC( string T )
+	{
+		import std.string;
+
+		auto found = T.lastIndexOf( ':' );
+
+		if( found != -1 && T[ found - 1 ] == ':' )
+		{
+			return T[ found + 1 .. $ ];
+		}
+		return T;
+	}
 	//------------------------------------------------------------------------
 
 	enum			FullyQualifiedDDecl				= typeStringD( fullyQualifiedName!( T ) );
 	enum			DDecl							= typeStringD( T.stringof );
 	enum			CDecl							= typeStringC( CTypeString!( T ) );
+	enum			UnqualifiedCDecl				= unqualC( typeStringC( CTypeString!( T ) ) );
 }
 //----------------------------------------------------------------------------
 

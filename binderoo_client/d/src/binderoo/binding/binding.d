@@ -169,6 +169,12 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 				return BoundFunction.FunctionKind.Method;
 			case Virtual:
 				return BoundFunction.FunctionKind.Virtual;
+			case Constructor:
+				return BoundFunction.FunctionKind.Constructor;
+			case Destructor:
+				return BoundFunction.FunctionKind.Method;
+			case VirtualDestructor:
+				return BoundFunction.FunctionKind.Virtual;
 			}
 		}
 
@@ -451,16 +457,16 @@ public string[] generateCPPStyleBindingDeclaration( BoundFunction[] functions )
 		{
 			definitionLines ~= "static void** getVTable_" ~ strClassWithoutNamespaces ~ "() { " ~ foundClass.key ~ " thisInstance; return *(void***)&thisInstance; }";
 			definitionLines ~= "static void** " ~ strVTableOf ~ " = getVTable_" ~ strClassWithoutNamespaces ~ "();";
-			definitionLines ~= "static binderoo::ExportedMethod " ~ strExportedMethods ~ "[] =";
-			definitionLines ~= "{";
+
+			string[] exportedMethods;
 
 			foreach( iIndex; foundClass.value )
 			{
 				BoundFunction func = functions[ iIndex ];
 
-				if( func.eFunctionKind == BoundFunction.FunctionKind.Virtual )
+				if( func.eFunctionKind & BoundFunction.FunctionKind.Virtual )
 				{
-					definitionLines ~= "\tbinderoo::ExportedMethod( \"" ~ cast( string )func.strFunctionName ~ "\", \"" ~ cast( string )func.strFunctionSignature ~ "\", " ~ strVTableOf ~ "[ " ~ to!string( func.iOrderInTable ) ~ " ] ),";
+					exportedMethods ~= "\tbinderoo::ExportedMethod( \"" ~ cast( string )func.strFunctionName ~ "\", \"" ~ cast( string )func.strFunctionSignature ~ "\", " ~ strVTableOf ~ "[ " ~ to!string( func.iOrderInTable ) ~ " ] ),";
 				}
 				else
 				{
@@ -485,9 +491,21 @@ public string[] generateCPPStyleBindingDeclaration( BoundFunction[] functions )
 						strTypeCast ~= " )";
 					}
 
-					definitionLines ~= "\tbinderoo::ExportedMethod( \"" ~ cast( string )func.strFunctionName ~ "\", \"" ~ cast( string )func.strFunctionSignature ~ "\", " ~ strTypeCast ~ "&" ~ cast(string)func.strFunctionName ~ " ),";
+					if( func.eFunctionKind == BoundFunction.FunctionKind.Constructor )
+					{
+						definitionLines ~= "static void constructor_" ~ strClassWithoutNamespaces ~ "( " ~ strClass ~ "* pObj ) { new( pObj ) " ~ strClass ~ "; }";
+						exportedMethods ~= "\tbinderoo::ExportedMethod( \"" ~ cast( string )func.strFunctionName ~ "\", \"" ~ cast( string )func.strFunctionSignature ~ "\", ( void(*)( " ~ strClass ~ "*) )&constructor_" ~ strClassWithoutNamespaces ~ " ),";
+					}
+					else
+					{
+						exportedMethods ~= "\tbinderoo::ExportedMethod( \"" ~ cast( string )func.strFunctionName ~ "\", \"" ~ cast( string )func.strFunctionSignature ~ "\", " ~ strTypeCast ~ "&" ~ cast(string)func.strFunctionName ~ " ),";
+					}
 				}
 			}
+
+			definitionLines ~= "static binderoo::ExportedMethod " ~ strExportedMethods ~ "[] =";
+			definitionLines ~= "{";
+			definitionLines ~= exportedMethods;
 			definitionLines ~= "};";
 		}
 

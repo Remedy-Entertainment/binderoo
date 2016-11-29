@@ -181,10 +181,21 @@ string GenerateImports( ThisType, BaseType )()
 
 					foreach( Function; FunctionDescriptors!( CurrType.MethodDescriptor ) )
 					{
-						static if( Function.HasUDA!( BindVirtual ) || Function.HasUDA!( BindVirtualDestructor ) )
+						static if( Function.HasUDA!( BindVirtual ) )
 						{
 							alias FunctionDetails = Function.GetUDA!( BindVirtual );
-
+						}
+						else static if( Function.HasUDA!( BindVirtualDestructor ) )
+						{
+							alias FunctionDetails = Function.GetUDA!( BindVirtualDestructor );
+						}
+						else
+						{
+							alias FunctionDetails = void;
+						}
+						
+						static if( !is( FunctionDetails == void ) )
+						{
 							enum OverrideFound = DOverrides.find!( ( a, b ) => a.strFunctionSignature == b )( FunctionString!( Function ).DDecl );
 
 							string strIsConst = Function.IsConst ? "true" : "false";
@@ -252,7 +263,10 @@ string GenerateImports( ThisType, BaseType )()
 				{
 					foreach( Function; FunctionDescriptors!( CurrType.MethodDescriptor ) )
 					{
-						static if( Function.HasUDA!( BindVirtual ) || Function.HasUDA!( BindVirtualDestructor ) )
+						enum HasVirtual = Function.HasUDA!( BindVirtual );
+						enum HasVirtualDestructor = Function.HasUDA!( BindVirtualDestructor );
+
+						static if( HasVirtual || HasVirtualDestructor )
 						{
 							static if( !Function.HasUDA!( BindDisallow ) && DOverrides.find!( ( a, b ) => a.strFunctionSignature == b )( FunctionString!( Function ).DDecl ).length == 0 )
 							{
@@ -265,7 +279,14 @@ string GenerateImports( ThisType, BaseType )()
 								}
 
 								string pointerName = "function" ~ to!string( iIndex );
-								functionCalls ~= "\t@InheritanceVirtualCall pragma( inline ) " ~ FunctionString!( Function ).DDeclNoLinkage ~ "\n\t{ " ~ ThisType.stringof ~ "* thisObj = cast(" ~ ThisType.stringof ~ "*)&this; return __vtableData." ~ pointerName ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }\n";
+								static if( HasVirtual )
+								{
+									functionCalls ~= "\t@InheritanceVirtualCall pragma( inline ) " ~ FunctionString!( Function ).DDeclNoLinkage ~ "\n\t{ " ~ ThisType.stringof ~ "* thisObj = cast(" ~ ThisType.stringof ~ "*)&this; return __vtableData." ~ pointerName ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }\n";
+								}
+								else static if( HasVirtualDestructor )
+								{
+									functionCalls ~= "\t@InheritanceVirtualCall pragma( inline ) void cppDestructor( uint iDestructorValue )\n\t{ " ~ ThisType.stringof ~ "* thisObj = cast(" ~ ThisType.stringof ~ "*)&this; return __vtableData." ~ pointerName ~ "( thisObj, iDestructorValue ); }\n";
+								}
 							}
 							++iIndex;
 						}
@@ -337,6 +358,17 @@ string GenerateImports( ThisType, BaseType )()
 							string UDAs = "\t\t@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( ThisType, false ).CDecl ~ "::" ~ Function.Name ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", " ~ FunctionKind ~ ", " ~ orderInTable ~ ", " ~ IsConst ~ ", " ~ OwnerIsAbstract ~ ", "  ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
 							pointers ~= UDAs ~ "\n\t\tRawMemberFunctionPointer!( FunctionDescriptor!(" ~ fullyQualifiedName!( Function.ObjectType ) ~ ", \"" ~ Function.Name ~ "\", " ~ to!string( Function.OverloadIndex ) ~ " )" ~ ", " ~ ThisType.stringof ~ " ) " ~ identifier ~ ";";
 						}
+						else static if( Function.HasUDA!( BindConstructor ) )
+						{
+							alias FunctionDetails = Function.GetUDA!( BindConstructor );
+							enum FunctionKind = "BindRawImport.FunctionKind.Constructor";
+
+							string orderInTable = to!string( iIndex++ );
+							string identifier = "function" ~ orderInTable;
+
+							string UDAs = "\t\t@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( ThisType, false ).CDecl ~ "::" ~ TypeString!( ThisType, false ).UnqualifiedCDecl ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", " ~ FunctionKind ~ ", " ~ orderInTable ~ ", false, " ~ OwnerIsAbstract ~ ", "  ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
+							pointers ~= UDAs ~ "\n\t\tRawMemberFunctionPointer!( FunctionDescriptor!(" ~ fullyQualifiedName!( Function.ObjectType ) ~ ", \"" ~ Function.Name ~ "\", " ~ to!string( Function.OverloadIndex ) ~ " )" ~ ", " ~ ThisType.stringof ~ " ) " ~ identifier ~ ";";
+						}
 					}
 				}
 			}
@@ -380,7 +412,9 @@ string GenerateImports( ThisType, BaseType )()
 				{
 					foreach( Function; FunctionDescriptors!( CurrType.MethodDescriptor ) )
 					{
-						static if( Function.HasUDA!( BindMethod ) )
+						enum HasBindMethod = Function.HasUDA!( BindMethod );
+						enum HasBindConstructor = Function.HasUDA!( BindConstructor );
+						static if( HasBindMethod || HasBindConstructor )
 						{
 							static if( !Function.HasUDA!( BindDisallow ) )
 							{
@@ -401,9 +435,16 @@ string GenerateImports( ThisType, BaseType )()
 								}
 								else
 								{
-									functionCalls ~= "\t@InheritanceMethodCall pragma( inline ) " ~ FunctionString!( Function ).DDeclNoLinkage ~ "\n\t{ " ~ ThisType.stringof ~ "* thisObj = cast(" ~ ThisType.stringof ~ "*)&this; return __methodtableData.function" ~ to!string( iIndex ) ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }\n";
+									static if( HasBindMethod )
+									{
+										functionCalls ~= "\t@InheritanceMethodCall pragma( inline ) " ~ FunctionString!( Function ).DDeclNoLinkage ~ "\n\t{ " ~ ThisType.stringof ~ "* thisObj = cast(" ~ ThisType.stringof ~ "*)&this; return __methodtableData.function" ~ to!string( iIndex ) ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }\n";
+									}
+									else static if( HasBindConstructor )
+									{
+										functionCalls ~= "\t@InheritanceMethodCall pragma( inline ) void cppConstructor( " ~ FunctionString!( Function ).ParameterDeclarations ~ ")\n\t{ " ~ ThisType.stringof ~ "* thisObj = cast(" ~ ThisType.stringof ~ "*)&this; return __methodtableData.function" ~ to!string( iIndex ) ~ "( " ~ parameterNames.joinWith( ", " ) ~ " ); }\n";
+									}
 
-									static if( Function.HasUDA!( BindGetter ) )
+									static if( HasBindMethod && Function.HasUDA!( BindGetter ) )
 									{
 										static assert( Function.ParameterCount == 0, "Getter function " ~ Function.Name ~ " has parameters! It cannot be marked as a getter property." );
 										static assert( Function.HasReturnType, "Getter function " ~ Function.Name ~ " does not return anything!" );
@@ -413,7 +454,7 @@ string GenerateImports( ThisType, BaseType )()
 										functionCalls ~= "\t@InheritanceMethodCall pragma( inline ) @property " ~ PropertyName ~ "()\n\t{ auto thisObj = &this; return __methodtableData.function" ~ to!string( iIndex ) ~ "( thisObj ); }\n";
 									}
 
-									static if( Function.HasUDA!( BindSetter ) )
+									static if( HasBindMethod && Function.HasUDA!( BindSetter ) )
 									{
 										static assert( Function.ParameterCount == 1, "Setter function " ~ Function.Name ~ " has extra parameters! It cannot be marked as a getter property." );
 
@@ -661,6 +702,7 @@ mixin template CPPStructInherits( T, NewMethods = void )
 
 	version( InheritanceInspectionDebug ) pragma( msg, "C++ Inheritance: Struct " ~ typeof( this ).stringof );
 	version( InheritanceInspectionDebug ) pragma( msg, typeof( this ).stringof ~ " base accessors:\n" ~ GenerateBaseAccessors!( T ) );
+	version( InheritanceInspectionDebug ) pragma( msg, GenerateImports!( typeof( this ), T )() );
 
 	mixin( GenerateBaseAccessors!( T ) );
 	mixin( GenerateImports!( typeof( this ), T )() );
@@ -719,6 +761,9 @@ mixin template CPPStructBase( NewMethods = void )
 {
 	static assert( HasUDA!( typeof( this ), CTypeName ), typeof( this ).stringof ~ " is a C++ object but does not have a @CTypeName attribute defined." );
 
+	version( InheritanceInspectionDebug ) pragma( msg, "C++ Inheritance: Struct " ~ typeof( this ).stringof );
+	version( InheritanceInspectionDebug ) pragma( msg, GenerateImports!( typeof( this ), void )() );
+
 	enum StructType				= InheritanceStructType.CPP;
 
 	alias MethodDescriptor		= NewMethods;
@@ -744,6 +789,8 @@ mixin template CPPStructBase( NewMethods = void )
 		typeof( this ) newObj;
 		return newObj;
 	}
+
+	// NOTE: DESTRUCTION IS ONLY DONE IN BOUND OBJECT CREATION AND DESTRUCTION CURRENTLY
 
 	version( InheritanceInterfaceInspection ) pragma( msg, GenerateInterfaceRepresentation!( typeof( this ), void, StructType )() );
 }
@@ -784,10 +831,31 @@ template HasInheritedDirectly( Type, BaseType ) if( is( Type == struct ) )
 void constructObject( Type )( ref Type obj )
 {
 	obj = Type();
+	static if( __traits( hasMember, Type, "cppConstructor" ) )
+	{
+		obj.cppConstructor();
+	}
+
 	static if( __traits( hasMember, Type, "OnConstruct" ) )
 	{
 		obj.OnConstruct();
 	}
+}
+//----------------------------------------------------------------------------
+
+void destructObject( Type )( ref Type obj )
+{
+	static if( __traits( hasMember, Type, "OnDestruct" ) )
+	{
+		obj.OnDestruct();
+	}
+
+	static if( __traits( hasMember, Type, "cppDestructor" ) )
+	{
+		obj.cppDestructor( 0 );
+	}
+
+	destroy( obj );
 }
 //----------------------------------------------------------------------------
 

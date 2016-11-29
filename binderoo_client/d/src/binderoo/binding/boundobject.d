@@ -145,10 +145,19 @@ struct BoundObjectFunctions( Type )
 
 		// TODO: Provide allocator API
 		auto val = cast( CastType )thunkObj( pObj );
-		destroy( val );
+
+		static if( is( Type == struct ) )
+		{
+			import binderoo.binding.inheritance : destructObject;
+			
+			destructObject( *val );
+		}
+		else
+		{
+			destroy( obj );
+		}
 
 		GC.removeRange( pObj );
-
 		free( pObj );
 	}
 

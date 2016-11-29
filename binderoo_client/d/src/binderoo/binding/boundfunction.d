@@ -58,11 +58,14 @@ struct BoundFunction
 	@CTypeName( "binderoo::BoundFunction::FunctionKind", "binderoo/boundfunction.h" )
 	enum FunctionKind : char
 	{
-		Undefined		= 0,
-		Static			= 0x1,
-		Method			= 0x2,
-		Virtual			= 0x4,
-		Abstract		= 0x8,
+		Undefined			= 0,
+		Static				= 0x1,
+		Method				= 0x2,
+		Virtual				= 0x4,
+		Abstract			= 0x8,
+		Constructor			= 0x10,
+		Destructor			= 0x20,
+		VirtualDestructor	= Virtual | Destructor,
 	}
 
 	@CTypeName( "binderoo::BoundFunction::Flags", "binderoo/boundfunction.h" )

@@ -43,6 +43,9 @@ struct BindRawImport
 		Static,
 		Method,
 		Virtual,
+		Constructor,
+		Destructor,
+		VirtualDestructor,
 	}
 
 	string			strCName;

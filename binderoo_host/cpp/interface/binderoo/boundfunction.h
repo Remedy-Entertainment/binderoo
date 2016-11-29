@@ -65,19 +65,22 @@ namespace binderoo
 
 		enum class FunctionKind : char
 		{
-			Undefined	= 0,
-			Static		= 0x1,
-			Method		= 0x2,
-			Virtual		= 0x4,
-			Abstract	= 0x8,
+			Undefined			= 0,
+			Static				= 0x1,
+			Method				= 0x2,
+			Virtual				= 0x4,
+			Abstract			= 0x8,
+			Constructor			= 0x10,
+			Destructor			= 0x20,
+			VirtualDestructor	= Virtual | Destructor,
 		};
 		//--------------------------------------------------------------------
 
 		enum class Flags : char
 		{
-			None			= 0,
-			OwnerIsAbstract	= 0x1,
-			Const			= 0x2,
+			None				= 0,
+			OwnerIsAbstract		= 0x1,
+			Const				= 0x2,
 		};
 		//--------------------------------------------------------------------
 

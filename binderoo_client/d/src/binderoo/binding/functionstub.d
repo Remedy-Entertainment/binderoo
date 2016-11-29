@@ -55,10 +55,7 @@ auto ParamTypes( Func, uint iIndex )() if( Func.IsMemberFunction )
 
 template RawMemberFunctionPointer( Func, RewriteThis = Func.ObjectType ) if( Func.IsMemberFunction )
 {
-	template RefString( Func )
-	{
-		enum RefString = Func.ReturnsRef ? "ref " : "";
-	}
+	enum RefString = Func.ReturnsRef ? "ref " : "";
 
 	struct Magic
 	{
@@ -66,11 +63,11 @@ template RawMemberFunctionPointer( Func, RewriteThis = Func.ObjectType ) if( Fun
 		mixin( "import " ~ moduleName!( RewriteThis ) ~ ";" );		// HI I'M MISTER HACKSEEKS LOOK AT ME
 		static if( Func.IsStatic )
 		{
-			mixin( "static public extern( C++ ) "  ~ RefString!( Func ) ~ Func.ReturnType.stringof ~ " prototype( " ~ ParamTypes!( Func, 0u )() ~ " );" );
+			mixin( "static public extern( C++ ) "  ~ RefString ~ Func.ReturnType.stringof ~ " prototype( " ~ ParamTypes!( Func, 0u )() ~ " );" );
 		}
 		else
 		{
-			mixin( "static public extern( C++ ) "  ~ RefString!( Func ) ~ Func.ReturnType.stringof ~ " prototype( " ~ RewriteThis.stringof ~ "*" ~ ParamTypes!( Func, 0u )() ~ " );" );
+			mixin( "static public extern( C++ ) "  ~ RefString ~ Func.ReturnType.stringof ~ " prototype( " ~ RewriteThis.stringof ~ "*" ~ ParamTypes!( Func, 0u ) ~ " );" );
 		}
 	}
 
