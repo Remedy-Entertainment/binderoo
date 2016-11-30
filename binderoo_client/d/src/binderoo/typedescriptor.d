@@ -268,7 +268,7 @@ struct TypeString( T, bool bIsRef = false )
 
 		auto found = T.lastIndexOf( ':' );
 
-		if( found != -1 && T[ found - 1 ] == ':' )
+		if( found > 0 && T[ found - 1 ] == ':' )
 		{
 			return T[ found + 1 .. $ ];
 		}
