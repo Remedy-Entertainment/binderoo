@@ -172,9 +172,9 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 			case Constructor:
 				return BoundFunction.FunctionKind.Constructor;
 			case Destructor:
-				return BoundFunction.FunctionKind.Method;
+				return BoundFunction.FunctionKind.Destructor;
 			case VirtualDestructor:
-				return BoundFunction.FunctionKind.Virtual;
+				return BoundFunction.FunctionKind.VirtualDestructor;
 			}
 		}
 
@@ -439,6 +439,13 @@ public string[] generateCPPStyleBindingDeclaration( BoundFunction[] functions )
 		string strClass = foundClass.key;
 		string strClassWithoutNamespaces = strClass.replace( "::", "_" );
 
+		string strClassUnqualifiedName = strClass;
+		auto found = strClassUnqualifiedName.lastIndexOf( ':' );
+		if( found > 0 && strClassUnqualifiedName[ found - 1 ] == ':' )
+		{
+			strClassUnqualifiedName = strClass[ found + 1 .. $ ];
+		}
+
 		string[] definitionLines;
 
 		string strExportVersion = "iExportVersion_" ~ strClassWithoutNamespaces;
@@ -464,7 +471,7 @@ public string[] generateCPPStyleBindingDeclaration( BoundFunction[] functions )
 			{
 				BoundFunction func = functions[ iIndex ];
 
-				if( func.eFunctionKind & BoundFunction.FunctionKind.Virtual )
+				if( ( func.eFunctionKind & BoundFunction.FunctionKind.Virtual ) && !( func.eFunctionKind & BoundFunction.FunctionKind.Destructor ) )
 				{
 					exportedMethods ~= "\tbinderoo::ExportedMethod( \"" ~ cast( string )func.strFunctionName ~ "\", \"" ~ cast( string )func.strFunctionSignature ~ "\", " ~ strVTableOf ~ "[ " ~ to!string( func.iOrderInTable ) ~ " ] ),";
 				}
@@ -491,10 +498,15 @@ public string[] generateCPPStyleBindingDeclaration( BoundFunction[] functions )
 						strTypeCast ~= " )";
 					}
 
-					if( func.eFunctionKind == BoundFunction.FunctionKind.Constructor )
+					if( func.eFunctionKind & BoundFunction.FunctionKind.Constructor )
 					{
 						definitionLines ~= "static void constructor_" ~ strClassWithoutNamespaces ~ "( " ~ strClass ~ "* pObj ) { new( pObj ) " ~ strClass ~ "; }";
-						exportedMethods ~= "\tbinderoo::ExportedMethod( \"" ~ cast( string )func.strFunctionName ~ "\", \"" ~ cast( string )func.strFunctionSignature ~ "\", ( void(*)( " ~ strClass ~ "*) )&constructor_" ~ strClassWithoutNamespaces ~ " ),";
+						exportedMethods ~= "\tbinderoo::ExportedMethod( \"" ~ cast( string )func.strFunctionName ~ "\", \"" ~ cast( string )func.strFunctionSignature ~ "\", ( void(*)( " ~ strClass ~ "* ) )&constructor_" ~ strClassWithoutNamespaces ~ " ),";
+					}
+					else if( func.eFunctionKind & BoundFunction.FunctionKind.Destructor )
+					{
+						definitionLines ~= "static void destructor_" ~ strClassWithoutNamespaces ~ "( " ~ strClass ~ "* pObj ) { pObj->~" ~ strClassUnqualifiedName ~ "(); }";
+						exportedMethods ~= "\tbinderoo::ExportedMethod( \"" ~ cast( string )func.strFunctionName ~ "\", \"" ~ cast( string )func.strFunctionSignature ~ "\", ( void(*)( " ~ strClass ~ "* ) )&destructor_" ~ strClassWithoutNamespaces ~ " ),";
 					}
 					else
 					{

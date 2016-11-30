@@ -184,10 +184,14 @@ string GenerateImports( ThisType, BaseType )()
 						static if( Function.HasUDA!( BindVirtual ) )
 						{
 							alias FunctionDetails = Function.GetUDA!( BindVirtual );
+							enum FunctionKind = "BindRawImport.FunctionKind.Virtual";
+							enum FunctionCPPName = Function.Name;
 						}
 						else static if( Function.HasUDA!( BindVirtualDestructor ) )
 						{
 							alias FunctionDetails = Function.GetUDA!( BindVirtualDestructor );
+							enum FunctionKind = "BindRawImport.FunctionKind.VirtualDestructor";
+							enum FunctionCPPName = "~" ~ TypeString!( ThisType, false ).UnqualifiedCDecl;
 						}
 						else
 						{
@@ -207,7 +211,7 @@ string GenerateImports( ThisType, BaseType )()
 
 							static if( OverrideFound.length == 0 )
 							{
-								string UDAs = "\t\t@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( ThisType, false ).CDecl ~ "::" ~ Function.Name ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", BindRawImport.FunctionKind.Virtual, " ~ orderInTable ~ ", " ~ strIsConst ~ ", " ~ OwnerIsAbstract ~ ", " ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
+								string UDAs = "\t\t@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( ThisType, false ).CDecl ~ "::" ~ FunctionCPPName ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", " ~ FunctionKind ~ ", " ~ orderInTable ~ ", " ~ strIsConst ~ ", " ~ OwnerIsAbstract ~ ", " ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
 								pointers ~= UDAs ~ "\n\t\tRawMemberFunctionPointer!( FunctionDescriptor!(" ~ fullyQualifiedName!( Function.ObjectType ) ~ ", \"" ~ Function.Name ~ "\", " ~ to!string( Function.OverloadIndex ) ~ " )" ~ ", " ~ ThisType.stringof ~ " ) " ~ identifier ~ ";";
 							}
 							else
@@ -285,7 +289,7 @@ string GenerateImports( ThisType, BaseType )()
 								}
 								else static if( HasVirtualDestructor )
 								{
-									functionCalls ~= "\t@InheritanceVirtualCall pragma( inline ) void cppDestructor( uint iDestructorValue )\n\t{ " ~ ThisType.stringof ~ "* thisObj = cast(" ~ ThisType.stringof ~ "*)&this; return __vtableData." ~ pointerName ~ "( thisObj, iDestructorValue ); }\n";
+									functionCalls ~= "\t@InheritanceVirtualCall pragma( inline ) void cppDestructor( )\n\t{ " ~ ThisType.stringof ~ "* thisObj = cast(" ~ ThisType.stringof ~ "*)&this; return __vtableData." ~ pointerName ~ "( thisObj ); }\n";
 								}
 							}
 							++iIndex;
@@ -852,7 +856,7 @@ void destructObject( Type )( ref Type obj )
 
 	static if( __traits( hasMember, Type, "cppDestructor" ) )
 	{
-		obj.cppDestructor( 0 );
+		obj.cppDestructor();
 	}
 
 	destroy( obj );
