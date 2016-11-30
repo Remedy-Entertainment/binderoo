@@ -152,6 +152,7 @@ namespace binderoo
 			if( pObjectInstance != nullptr )
 			{
 				Host::getActiveHost()->destroyImportedClass( pSymbol, pObjectInstance );
+				pObjectInstance = nullptr;
 			}
 		}
 		//--------------------------------------------------------------------
