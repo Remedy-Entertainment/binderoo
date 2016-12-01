@@ -104,7 +104,7 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 					enum AliasString = Alias;
 				}
 
-				static if( mixin( "IsSomeType!( " ~ AliasString ~ " )" ) )
+				static if( mixin( "__traits( compiles, " ~ AliasString ~ " ) && IsSomeType!( " ~ AliasString ~ " )" ) )
 				{
 					mixin( "alias Type = " ~ AliasString ~ ";" );
 					mixin( "import " ~ moduleName!( Type ) ~ ";" );
@@ -281,34 +281,36 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 
 			foreach( SymbolName; Symbols )
 			{
-				mixin( "alias Symbol = " ~ SymbolName  ~ ";" );
-
-				static if( isSomeFunction!( Symbol ) && HasUDA!( Symbol, BindExport ) )
+				static if( mixin( "__traits( compiles, " ~ SymbolName ~ " )" ) )
 				{
-					alias Descriptor = FunctionDescriptor!( Symbol );
-					alias ExportData = Descriptor.GetUDA!( BindExport );
+					mixin( "alias Symbol = " ~ SymbolName  ~ ";" );
 
-					static assert( Descriptor.IsCPlusPlusFunction, fullyQualifiedName!( Symbol ) ~ " can only be exported as extern( C++ ) for now." );
+					static if( isSomeFunction!( Symbol ) && HasUDA!( Symbol, BindExport ) )
+					{
+						alias Descriptor = FunctionDescriptor!( Symbol );
+						alias ExportData = Descriptor.GetUDA!( BindExport );
 
-					enum FullName = fullyQualifiedName!( Symbol );
-					enum Signature = FunctionString!( Descriptor ).CSignature;
+						static assert( Descriptor.IsCPlusPlusFunction, fullyQualifiedName!( Symbol ) ~ " can only be exported as extern( C++ ) for now." );
 
-					//pragma( msg, "Exporting " ~ FullName ~ ": " ~ Signature );
+						enum FullName = fullyQualifiedName!( Symbol );
+						enum Signature = FunctionString!( Descriptor ).CSignature;
 
-					foundExports ~= BoundFunction( DString( FullName )
-													, DString( Signature )
-													, DString( "" )
-													, DString( "" )
-													, BoundFunction.Hashes( fnv1a_64( FullName ), fnv1a_64( Signature ) )
-													, mixin( "&" ~ fullyQualifiedName!( Symbol ) )
-													, ExportData.iIntroducedVersion
-													, 0
-													, BoundFunction.Resolution.Exported
-													, BoundFunction.CallingConvention.CPP
-													, BoundFunction.FunctionKind.Static
-													, BoundFunction.Flags.None );
+						//pragma( msg, "Exporting " ~ FullName ~ ": " ~ Signature );
+
+						foundExports ~= BoundFunction( DString( FullName )
+														, DString( Signature )
+														, DString( "" )
+														, DString( "" )
+														, BoundFunction.Hashes( fnv1a_64( FullName ), fnv1a_64( Signature ) )
+														, mixin( "&" ~ fullyQualifiedName!( Symbol ) )
+														, ExportData.iIntroducedVersion
+														, 0
+														, BoundFunction.Resolution.Exported
+														, BoundFunction.CallingConvention.CPP
+														, BoundFunction.FunctionKind.Static
+														, BoundFunction.Flags.None );
+					}
 				}
-
 			}
 
 			return foundExports;
