@@ -46,7 +46,7 @@ version = InheritanceMSVC;
 import std.typecons;
 import std.typetuple;
 
-import binderoo.binding.functionstub;
+public import binderoo.binding.functionstub;
 import binderoo.objectprivacy;
 
 struct InheritanceBase { }
@@ -133,11 +133,11 @@ string GenerateImports( ThisType, BaseType )()
 					}
 				}
 
-				return "\t\tenum DOverride[] DOverrides = [ " ~ strNewOverrides.joinWith( ", " ) ~ " ];\n\n";
+				return "\t\tenum DOverride[] DOverrides = [ " ~ strNewOverrides.joinWith( ", " ) ~ " ];\n\nalias CPPNameType = BaseType;\n\n";
 			}
 			else
 			{
-				return "\t\tenum DOverride[] DOverrides = [];\n\n";
+				return "\t\tenum DOverride[] DOverrides = [];\n\nalias CPPNameType = ThisType;\n\n";
 			}
 		}
 
@@ -191,7 +191,7 @@ string GenerateImports( ThisType, BaseType )()
 						{
 							alias FunctionDetails = Function.GetUDA!( BindVirtualDestructor );
 							enum FunctionKind = "BindRawImport.FunctionKind.VirtualDestructor";
-							enum FunctionCPPName = "~" ~ TypeString!( ThisType, false ).UnqualifiedCDecl;
+							enum FunctionCPPName = "~" ~ TypeString!( CPPNameType, false ).UnqualifiedCDecl;
 						}
 						else
 						{
@@ -211,7 +211,7 @@ string GenerateImports( ThisType, BaseType )()
 
 							static if( OverrideFound.length == 0 )
 							{
-								string UDAs = "\t\t@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( ThisType, false ).CDecl ~ "::" ~ FunctionCPPName ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", " ~ FunctionKind ~ ", " ~ orderInTable ~ ", " ~ strIsConst ~ ", " ~ OwnerIsAbstract ~ ", " ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
+								string UDAs = "\t\t@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( CPPNameType, false ).CDecl ~ "::" ~ FunctionCPPName ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", " ~ FunctionKind ~ ", " ~ orderInTable ~ ", " ~ strIsConst ~ ", " ~ OwnerIsAbstract ~ ", " ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
 								pointers ~= UDAs ~ "\n\t\tRawMemberFunctionPointer!( FunctionDescriptor!(" ~ fullyQualifiedName!( Function.ObjectType ) ~ ", \"" ~ Function.Name ~ "\", " ~ to!string( Function.OverloadIndex ) ~ " )" ~ ", " ~ ThisType.stringof ~ " ) " ~ identifier ~ ";";
 							}
 							else
@@ -312,6 +312,15 @@ string GenerateImports( ThisType, BaseType )()
 		public import binderoo.binding.functionstub;
 		public import binderoo.objectprivacy;
 
+		static if( ThisType.StructType == InheritanceStructType.D )
+		{
+			alias CPPNameType = BaseType;
+		}
+		else
+		{
+			alias CPPNameType = ThisType;
+		}
+
 		static if( is( BaseType == void ) )
 		{
 			alias Types = TypeTuple!( ThisType );
@@ -359,7 +368,7 @@ string GenerateImports( ThisType, BaseType )()
 							string orderInTable = to!string( iIndex++ );
 							string identifier = "function" ~ orderInTable;
 
-							string UDAs = "\t\t@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( ThisType, false ).CDecl ~ "::" ~ Function.Name ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", " ~ FunctionKind ~ ", " ~ orderInTable ~ ", " ~ IsConst ~ ", " ~ OwnerIsAbstract ~ ", "  ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
+							string UDAs = "\t\t@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( CPPNameType, false ).CDecl ~ "::" ~ Function.Name ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", " ~ FunctionKind ~ ", " ~ orderInTable ~ ", " ~ IsConst ~ ", " ~ OwnerIsAbstract ~ ", "  ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
 							pointers ~= UDAs ~ "\n\t\tRawMemberFunctionPointer!( FunctionDescriptor!(" ~ fullyQualifiedName!( Function.ObjectType ) ~ ", \"" ~ Function.Name ~ "\", " ~ to!string( Function.OverloadIndex ) ~ " )" ~ ", " ~ ThisType.stringof ~ " ) " ~ identifier ~ ";";
 						}
 						else static if( Function.HasUDA!( BindConstructor ) )
@@ -370,7 +379,7 @@ string GenerateImports( ThisType, BaseType )()
 							string orderInTable = to!string( iIndex++ );
 							string identifier = "function" ~ orderInTable;
 
-							string UDAs = "\t\t@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( ThisType, false ).CDecl ~ "::" ~ TypeString!( ThisType, false ).UnqualifiedCDecl ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", " ~ FunctionKind ~ ", " ~ orderInTable ~ ", false, " ~ OwnerIsAbstract ~ ", "  ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
+							string UDAs = "\t\t@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( CPPNameType, false ).CDecl ~ "::" ~ TypeString!( CPPNameType, false ).UnqualifiedCDecl ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", " ~ FunctionKind ~ ", " ~ orderInTable ~ ", false, " ~ OwnerIsAbstract ~ ", "  ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
 							pointers ~= UDAs ~ "\n\t\tRawMemberFunctionPointer!( FunctionDescriptor!(" ~ fullyQualifiedName!( Function.ObjectType ) ~ ", \"" ~ Function.Name ~ "\", " ~ to!string( Function.OverloadIndex ) ~ " )" ~ ", " ~ ThisType.stringof ~ " ) " ~ identifier ~ ";";
 						}
 					}
@@ -500,6 +509,79 @@ string GenerateImports( ThisType, BaseType )()
 			~ "\n"
 			~ MethodTable.generateAccessorsString()
 			~ "\n";
+}
+//----------------------------------------------------------------------------
+
+string GenerateBaseAndVTableAccessorsString( ThisType, BaseType )()
+{
+	string strOutput;
+
+	enum ThisTypeString = ThisType.stringof;
+	enum BaseTypeString = BaseType.stringof;
+
+	static if( !is( BaseType == void ) && BaseType.VTable.FunctionCount > 0 )
+	{
+		strOutput ~= "\t//pragma( msg, typeof(this).stringof ~ \" will call base constructor \" ~ T.stringof ~ \" with a vtable\" );\n";
+		strOutput ~= "\t@InheritanceBase T\t\t\t\tbase = T( &__vtableData );\n";
+		strOutput ~= "\n";
+		strOutput ~= "\tvoid setupVTable()\t\t\t\t\t\t\t\t\t\t\t{ base.setupVTable( &__vtableData ); }\n";
+		strOutput ~= "\tvoid setupVTable( VTableType )( VTableType* vtable )\t\t{ base.setupVTable( vtable ); }\n";
+	}
+	else
+	{
+		static if( ThisType.VTable.FunctionCount > 0 )
+		{
+			strOutput ~= "\t// This is meant to be a void** to be 100% correctypeof( this ). But the compiler won't let me.\n";
+			strOutput ~= "\t@BindNoSerialise void*	__vtable = &__vtableData;\n";
+			strOutput ~= "\n";
+			strOutput ~= "\tvoid setupVTable()\t\t\t\t\t\t\t\t\t\t{ __vtable = &__vtableData; }\n";
+			strOutput ~= "\tvoid setupVTable( VTableType )( VTableType* vtable )\t{ __vtable = vtable; }\n";
+		}
+
+		static if( !is( BaseType == void ) )
+		{
+			strOutput ~= "\t// TODO: Nicer method of non-virtual bases\n";
+			strOutput ~= "\t@InheritanceBase T			base;\n";
+//			strOutput ~= "\talias base\t\t\t\t\t\tthis;\n";
+		}
+	}
+
+	return strOutput;
+}
+//----------------------------------------------------------------------------
+
+string GenerateConstructors( ThisType, BaseType )()
+{
+	string strOutput;
+
+	static if( ThisType.VTable.FunctionCount > 0 )
+	{
+		strOutput ~= "\timport binderoo.traits : HasUDA, GetUDA;\n";
+		strOutput ~= "\tstatic auto opCall( VTableType )( VTableType* newVTable ) if( HasUDA!( VTableType, InheritanceGeneratedVTable ) )\n";
+		strOutput ~= "\t{\n";
+		strOutput ~= "\t\ttypeof( this ) newObj;\n";
+		static if( !is( BaseType == void ) && ThisType.VTable.FunctionCount > 0 )
+		{
+			strOutput ~= "\t\tnewObj.base = T( newVTable );\n";
+		}
+		else
+		{
+			strOutput ~= "\t\tnewObj.__vtable = newVTable;\n";
+		}
+
+		strOutput ~= "\t\treturn newObj;\n";
+		strOutput ~= "\t}\n";
+		strOutput ~= "\n";
+	}
+
+	strOutput ~= "\tstatic auto opCall()\n";
+	strOutput ~= "\t{\n";
+	strOutput ~= "\t\ttypeof( this ) newObj;\n";
+	strOutput ~= "\t\treturn newObj;\n";
+	strOutput ~= "\t}\n";
+	strOutput ~= "\n";
+
+	return strOutput;
 }
 //----------------------------------------------------------------------------
 
@@ -662,36 +744,20 @@ mixin template DStructInherits( T )
 {
 	enum StructType					= InheritanceStructType.D;
 
-	version( InheritanceInspectionDebug ) pragma( msg, "D Inheritance: Struct " ~ typeof( this ).stringof );
-	version( InheritanceInspectionDebug ) pragma( msg, typeof( this ).stringof ~ " base accessors:\n" ~ GenerateBaseAccessors!( T ) );
+	version( InheritanceInspectionDebug ) pragma( msg, "D Inheritance: Struct " ~ typeof( this ).stringof ~ "\n" );
+	version( InheritanceInspectionDebug ) pragma( msg, DStructOverrideSetup!( typeof( this ) )() );
+	version( InheritanceInspectionDebug ) pragma( msg, GenerateBaseAccessors!( T ) );
+	version( InheritanceInspectionDebug ) pragma( msg, GenerateImports!( typeof( this ), T )() );
+	version( InheritanceInspectionDebug ) pragma( msg, GenerateBaseAndVTableAccessorsString!( typeof( this ), T )() );
+	version( InheritanceInspectionDebug ) pragma( msg, GenerateConstructors!( typeof( this ), T )() );
 
 	mixin( DStructOverrideSetup!( typeof( this ) )() );
 	mixin( GenerateBaseAccessors!( T ) );
 	mixin( GenerateImports!( typeof( this ), T )() );
-
-	static if( T.VTable.FunctionCount > 0 )
-	{
-		//pragma( msg, typeof(this).stringof ~ " will call base constructor " ~ T.stringof ~ " with a vtable" );
-		@InheritanceBase T			base = T( &__vtableData );
-	}
-	else
-	{
-		static if( VTable.FunctionCount > 0 )
-		{
-			// This is meant to be a void** to be 100% correct. But the compiler won't let me.
-			@BindNoSerialise void*	__vtable = &__vtableData;
-		}
-		// TODO: Nicer method of non-virtual bases
-		@InheritanceBase T			base;
-	}
+	mixin( GenerateBaseAndVTableAccessorsString!( typeof( this ), T )() );
+	mixin( GenerateConstructors!( typeof( this ), T )() );
 
 	alias base						this;
-
-/+	static auto opCall()
-	{
-		typeof( this ) newObj;
-		return newObj;
-	}+/
 
 	version( InheritanceInterfaceInspection ) pragma( msg, GenerateInterfaceRepresentation!( typeof( this ), T, StructType )() );
 }
@@ -710,52 +776,12 @@ mixin template CPPStructInherits( T, NewMethods = void )
 
 	mixin( GenerateBaseAccessors!( T ) );
 	mixin( GenerateImports!( typeof( this ), T )() );
-
-	static if( T.VTable.FunctionCount > 0 )
-	{
-		//pragma( msg, typeof(this).stringof ~ " will call base constructor " ~ T.stringof ~ " with a vtable" );
-		@InheritanceBase T			base = T( &__vtableData );
-	}
-	else
-	{
-		static if( VTable.FunctionCount > 0 )
-		{
-			// This is meant to be a void** to be 100% correct. But the compiler won't let me.
-			@BindNoSerialise void*	__vtable = &__vtableData;
-		}
-		// TODO: Nicer method of non-virtual bases
-		@InheritanceBase T			base;
-	}
+	mixin( GenerateBaseAndVTableAccessorsString!( typeof( this ), T )() );
+	mixin( GenerateConstructors!( typeof( this ), T )() );
 
 	alias base						this;
 	alias MethodDescriptor			= NewMethods;
 	//------------------------------------------------------------------------
-
-	static if( VTable.FunctionCount > 0 )
-	{
-		import binderoo.traits : HasUDA, GetUDA;
-		static auto opCall( VTableType )( VTableType* newVTable ) if( HasUDA!( VTableType, InheritanceGeneratedVTable ) )
-		{
-			typeof( this ) newObj;
-			static if( T.VTable.FunctionCount > 0 )
-			{
-				newObj.base = T( newVTable );
-			}
-			else
-			{
-				newObj.__vtable = newVTable;
-			}
-
-			return newObj;
-		}
-	}
-	//------------------------------------------------------------------------
-
-	static auto opCall()
-	{
-		typeof( this ) newObj;
-		return newObj;
-	}
 
 	version( InheritanceInterfaceInspection ) pragma( msg, GenerateInterfaceRepresentation!( typeof( this ), T, StructType )() );
 }
@@ -773,26 +799,8 @@ mixin template CPPStructBase( NewMethods = void )
 	alias MethodDescriptor		= NewMethods;
 
 	mixin( GenerateImports!( typeof( this ), void )() );
-
-	static if( VTable.FunctionCount > 0 )
-	{
-		// This is meant to be a void** to be 100% correct. But the compiler won't let me.
-		@BindNoSerialise void*		__vtable = &__vtableData;
-
-		import binderoo.traits : HasUDA, GetUDA;
-		static auto opCall( VTableType )( VTableType* newVTable ) if( HasUDA!( VTableType, InheritanceGeneratedVTable ) )
-		{
-			typeof( this ) newObj;
-			newObj.__vtable = newVTable;
-			return newObj;
-		}
-	}
-
-	static auto opCall()
-	{
-		typeof( this ) newObj;
-		return newObj;
-	}
+	mixin( GenerateBaseAndVTableAccessorsString!( typeof( this ), void )() );
+	mixin( GenerateConstructors!( typeof( this ), void )() );
 
 	// NOTE: DESTRUCTION IS ONLY DONE IN BOUND OBJECT CREATION AND DESTRUCTION CURRENTLY
 
@@ -838,6 +846,11 @@ void constructObject( Type )( ref Type obj )
 	static if( __traits( hasMember, Type, "cppConstructor" ) )
 	{
 		obj.cppConstructor();
+	}
+
+	static if( __traits( hasMember, Type, "setupVTable" ) ) 
+	{
+		obj.setupVTable();
 	}
 
 	static if( __traits( hasMember, Type, "OnConstruct" ) )
