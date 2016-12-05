@@ -458,15 +458,15 @@ public string[] generateCPPStyleBindingDeclaration( BoundFunction[] functions )
 
 		definitionLines ~= "static const int " ~ strExportVersion ~ " = 1; // VERSION NUMBER IS A HACK";
 		definitionLines ~= "static size_t " ~ strNumExportedMethods ~ " = " ~ to!string( foundClass.value.length ) ~ ";";
+
+		bool bFoundVirtuals = false;
+
 		if( foundClass.value.length == 0 )
 		{
 			definitionLines ~= "static binderoo::ExportedMethod* " ~ strExportedMethods ~ " = nullptr;";
 		}
 		else
 		{
-			definitionLines ~= "static void** getVTable_" ~ strClassWithoutNamespaces ~ "() { " ~ foundClass.key ~ " thisInstance; return *(void***)&thisInstance; }";
-			definitionLines ~= "static void** " ~ strVTableOf ~ " = getVTable_" ~ strClassWithoutNamespaces ~ "();";
-
 			string[] exportedMethods;
 
 			foreach( iIndex; foundClass.value )
@@ -475,6 +475,7 @@ public string[] generateCPPStyleBindingDeclaration( BoundFunction[] functions )
 
 				if( ( func.eFunctionKind & BoundFunction.FunctionKind.Virtual ) && !( func.eFunctionKind & BoundFunction.FunctionKind.Destructor ) )
 				{
+					bFoundVirtuals = true;
 					exportedMethods ~= "\tbinderoo::ExportedMethod( \"" ~ cast( string )func.strFunctionName ~ "\", \"" ~ cast( string )func.strFunctionSignature ~ "\", " ~ strVTableOf ~ "[ " ~ to!string( func.iOrderInTable ) ~ " ] ),";
 				}
 				else
@@ -515,6 +516,12 @@ public string[] generateCPPStyleBindingDeclaration( BoundFunction[] functions )
 						exportedMethods ~= "\tbinderoo::ExportedMethod( \"" ~ cast( string )func.strFunctionName ~ "\", \"" ~ cast( string )func.strFunctionSignature ~ "\", " ~ strTypeCast ~ "&" ~ cast(string)func.strFunctionName ~ " ),";
 					}
 				}
+			}
+
+			if( bFoundVirtuals )
+			{
+				definitionLines ~= "static void** getVTable_" ~ strClassWithoutNamespaces ~ "() { " ~ foundClass.key ~ " thisInstance; return *(void***)&thisInstance; }";
+				definitionLines ~= "static void** " ~ strVTableOf ~ " = getVTable_" ~ strClassWithoutNamespaces ~ "();";
 			}
 
 			definitionLines ~= "static binderoo::ExportedMethod " ~ strExportedMethods ~ "[] =";
