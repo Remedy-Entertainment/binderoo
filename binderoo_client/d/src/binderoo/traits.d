@@ -103,6 +103,70 @@ template IsUserTypeButNotEnum( T )
 }
 //----------------------------------------------------------------------------
 
+alias IsAggregateType = IsUserTypeButNotEnum;
+//----------------------------------------------------------------------------
+
+template IsIntegral( T )
+{
+	enum IsIntegral = is( T == byte )
+					|| is( T == ubyte )
+					|| is( T == short )
+					|| is( T == ushort )
+					|| is( T == int )
+					|| is( T == uint )
+					|| is( T == long )
+					|| is( T == ulong );
+}
+//----------------------------------------------------------------------------
+
+template IntegralTypeOf( T )
+{
+	static if( IsIntegral!T )
+	{
+		alias IntegralTypeOf = T;
+	}
+	else static if( is( T == bool ) )
+	{
+		alias IntegralTypeOf = byte;
+	}
+}
+//----------------------------------------------------------------------------
+
+template IsScalar( T )
+{
+	enum IsScalar = is( T == float )
+					|| is( T == double )
+					|| is( T == real );
+}
+//----------------------------------------------------------------------------
+
+template IsSIMD( T )
+{
+	enum IsSIMD = is( T : __vector( ET ), ET );
+}
+//----------------------------------------------------------------------------
+
+template IsUnsigned( T )
+{
+	enum IsUnsigned = is( T == ubyte )
+					|| is( T == ushort )
+					|| is( T == uint )
+					|| is( T == ulong );
+}
+//----------------------------------------------------------------------------
+
+template IsSigned( T )
+{
+	enum IsSigned = is( T == byte )
+					|| is( T == short )
+					|| is( T == int )
+					|| is( T == long )
+					|| is( T == float )
+					|| is( T == double )
+					|| is( T == real );
+}
+//----------------------------------------------------------------------------
+
 template IsStaticMember( T, alias Member )
 {
 	static if( __traits( compiles, __traits( getMember, T, Member ) ) )
