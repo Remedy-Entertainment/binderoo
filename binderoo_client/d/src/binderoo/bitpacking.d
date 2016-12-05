@@ -67,17 +67,17 @@ struct PackSize
 }
 //----------------------------------------------------------------------------
 
-mixin template BitPack( Descriptor, string NameAlias = Descriptor.stringof )
+mixin template BitPack( alias Descriptor, string NameAlias = typeof( Descriptor ).stringof )
 {
 	version( BitPackCompileTimeDebug ) pragma( msg, GenerateBitPackBody!( Descriptor, NameAlias )() );
 
-	mixin( GenerateBitPackBody!( Descriptor, NameAlias )() );
+	mixin( GenerateBitPackBody!( typeof( Descriptor ), NameAlias )() );
 }
 //----------------------------------------------------------------------------
 
 mixin template BitPack( string ElementsWithPackingInfoAndDefaultValuesAndSemicolons, string NameAlias = "BitPackData" )
 {
-	mixin( "mixin BitPack!( typeof( { struct BitPackData { " ~ ElementsWithPackingInfoAndDefaultValuesAndSemicolons ~ " } return BitPackData.init; }() ), NameAlias );" );
+	mixin( "mixin BitPack!( { struct BitPackData { " ~ ElementsWithPackingInfoAndDefaultValuesAndSemicolons ~ " } return BitPackData.init; }(), NameAlias );" );
 }
 //----------------------------------------------------------------------------
 
@@ -176,7 +176,7 @@ string GenerateBitPackBody( Descriptor, string NameAlias )()
 			enum VariableTypeName = typeof( __traits( getMember, Descriptor, member ) ).stringof;
 			alias VariableType = typeof( __traits( getMember, Descriptor, member ) );
 			enum StorageType = StorageByBytes!( VariableType.sizeof ).stringof;
-			mixin( "enum InitValue = Descriptor.init." ~ VariableName ~ ";" );
+			mixin( "enum InitValue = ( new Descriptor )." ~ VariableName ~ ";" );
 
 			int iThisVariableBitStart = iBitStart;
 			int iBitsLeft = PackSizeUDA.iPackSize;
@@ -217,6 +217,11 @@ string GenerateBitPackBody( Descriptor, string NameAlias )()
 	return strOutput;
 }
 //----------------------------------------------------------------------------
+
+struct FooStruct
+{
+	mixin BitPack!( new class { @PackSize( 5 ) int foo = 6; @PackSize( 5 ) byte bar = 6; @PackSize( 6 ) byte heh = 38; } );
+}
 
 unittest
 {
