@@ -51,7 +51,47 @@ mixin template BindVersionDeclaration( int iCurrentVersion )
 }
 //----------------------------------------------------------------------------
 
+mixin template BindOnly( Type, int iCurrentVersion = 0, AdditionalStaticThisCalls... )
+{
+	mixin BindModuleImplementation!( iCurrentVersion, AdditionalStaticThisCalls );
+
+	static void initialiseModuleBinding()
+	{
+		functionsToImport = generateImports!( Type )();
+		functionsToExport = generateExports!( Type )();
+		objectsToExport = generateObjects!( Type )();
+
+		registerImportFunctions( functionsToImport );
+		registerExportedFunctions( functionsToExport );
+		registerExportedObjects( objectsToExport );
+	}
+	//------------------------------------------------------------------------
+
+}
+//----------------------------------------------------------------------------
+
 mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls... )
+{
+	mixin BindModuleImplementation!( iCurrentVersion, AdditionalStaticThisCalls );
+
+	static void initialiseModuleBinding()
+	{
+		functionsToImport = generateImports();
+		functionsToExport = generateExports();
+		objectsToExport = generateObjects();
+
+		registerImportFunctions( functionsToImport );
+		registerExportedFunctions( functionsToExport );
+		registerExportedObjects( objectsToExport );
+	}
+	//------------------------------------------------------------------------
+
+}
+//----------------------------------------------------------------------------
+
+// Module internals
+//----------------------------------------------------------------------------
+mixin template BindModuleImplementation( int iCurrentVersion = 0, AdditionalStaticThisCalls... )
 {
 	shared static this()
 	{
@@ -65,18 +105,6 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 	//------------------------------------------------------------------------
 
 	private:
-
-	static void initialiseModuleBinding()
-	{
-		functionsToImport = generateImports();
-		functionsToExport = generateExports();
-		objectsToExport = generateObjects();
-
-		registerImportFunctions( functionsToImport );
-		registerExportedFunctions( functionsToExport );
-		registerExportedObjects( objectsToExport );
-	}
-	//------------------------------------------------------------------------
 
 	__gshared align( 64 ) BoundObject[]							objectsToExport;
 	__gshared align( 16 ) BoundFunction[]						functionsToImport;
@@ -123,7 +151,7 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 	}
 	//------------------------------------------------------------------------
 
-	static BoundObject[] generateObjects()
+	static BoundObject[] generateObjects( ObjectTypes... )()
 	{
 		BoundObject[] gatherFor( Types... )()
 		{
@@ -152,12 +180,20 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 		}
 
 		mixin( "import " ~ moduleName!( functionsToImport ) ~ ";" );
-		alias ModuleTypes = ModuleTypeDescriptors!( void, __traits( allMembers, mixin( moduleName!( functionsToImport ) ) ) );
+
+		static if( ObjectTypes.length == 0 )
+		{
+			alias ModuleTypes = ModuleTypeDescriptors!( void, __traits( allMembers, mixin( moduleName!( functionsToImport ) ) ) );
+		}
+		else
+		{
+			alias ModuleTypes = ModuleTypeDescriptors!( void, ObjectTypes[ 0 ].stringof );
+		}
 		return gatherFor!( ModuleTypes )();
 	}
 	//------------------------------------------------------------------------
 
-	static BoundFunction[] generateImports()
+	static BoundFunction[] generateImports( ImportTypes... )()
 	{
 		BoundFunction.FunctionKind convert( BindRawImport.FunctionKind eKind )
 		{
@@ -269,11 +305,18 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 
 		mixin( "import " ~ moduleName!( functionsToImport ) ~ ";" );
 
-		alias Types = ModuleTypeDescriptors!( void, __traits( allMembers, mixin( moduleName!( functionsToImport ) ) ) );
+		static if( ImportTypes.length == 0 )
+		{
+			alias Types = ModuleTypeDescriptors!( void, __traits( allMembers, mixin( moduleName!( functionsToImport ) ) ) );
+		}
+		else
+		{
+			alias Types = ModuleTypeDescriptors!( void, ImportTypes[ 0 ].stringof );
+		}
 		return gatherFor!( Types )();
 	}
 
-	static BoundFunction[] generateExports()
+	static BoundFunction[] generateExports( ExportTypes... )()
 	{
 		BoundFunction[] functionGrabber( Type, Symbols... )()
 		{
@@ -318,14 +361,19 @@ mixin template BindModule( int iCurrentVersion = 0, AdditionalStaticThisCalls...
 
 
 		mixin( "import " ~ moduleName!( functionsToImport ) ~ ";" );
-		return functionGrabber!( void, __traits( allMembers, mixin( moduleName!( functionsToImport ) ) ) );
+		static if( ExportTypes.length == 0 )
+		{
+			return functionGrabber!( void, __traits( allMembers, mixin( moduleName!( functionsToImport ) ) ) );
+		}
+		else
+		{
+			return functionGrabber!( void, ExportTypes[ 0 ].stringof );
+		}
 	}
 
 }
 //----------------------------------------------------------------------------
 
-// Module internals
-//----------------------------------------------------------------------------
 public void registerImportFunctions( BoundFunction[] imports )
 {
 	foreach( iCurrIndex, ref forImport; imports )
