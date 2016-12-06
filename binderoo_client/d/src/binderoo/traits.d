@@ -73,6 +73,13 @@ template HasUDA( alias symbol, Attribute )
 }
 //----------------------------------------------------------------------------
 
+// I don't know why, but the compiler didn't like using pointers in alias...
+template HasUDA( T : A*, Attribute, A )
+{
+	enum HasUDA = !is( GetUDA!( T, Attribute ) == void );
+}
+//----------------------------------------------------------------------------
+
 template IsConst( T )
 {
 	enum IsConst = is( T == const( BaseT ), BaseT );
