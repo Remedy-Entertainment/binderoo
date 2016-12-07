@@ -34,12 +34,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //----------------------------------------------------------------------------
 
 #include "binderoo/defs.h"
-#include "binderoo/host.h"
+
+#include "binderoo/allocator.h"
 #include "binderoo/functiontraits.h"
+#include "binderoo/host.h"
 //----------------------------------------------------------------------------
 
 namespace binderoo
 {
+	template< typename _ty >
+	class RefCountedImportedClassInstance;
+
 	class ImportedBase
 	{
 	public:
@@ -77,6 +82,7 @@ namespace binderoo
 
 		BIND_INLINE ImportedClassInstance( const char* pClassName = NameProvider::getDName(), bool bInstantiate = false )
 			: ImportedBase( pClassName )
+			, iRefCount( 0 )
 		{
 			Host::getActiveHost()->registerImportedClassInstance( this );
 
@@ -95,9 +101,11 @@ namespace binderoo
 
 		BIND_INLINE ImportedClassInstance( ImportedClassInstance&& otherInst )
 			: ImportedBase( otherInst.pObjectInstance, otherInst.pObjectDescriptor, otherInst.pSymbol )
+			, iRefCount( otherInst.iRefCount )
 		{
 			otherInst.pObjectInstance = nullptr;
 			otherInst.pObjectDescriptor = nullptr;
+			otherInst.iRefCount = 0;
 
 			Host::getActiveHost()->registerImportedClassInstance( this );
 		}
@@ -117,9 +125,11 @@ namespace binderoo
 			pObjectInstance = otherInst.pObjectInstance;
 			pObjectDescriptor = otherInst.pObjectDescriptor;
 			pSymbol = otherInst.pSymbol;
+			iRefCount = otherInst.iRefCount;
 
 			otherInst.pObjectInstance = nullptr;
 			otherInst.pObjectDescriptor = nullptr;
+			otherInst.iRefCount = 0;
 
 			return *this;
 		}
@@ -133,7 +143,7 @@ namespace binderoo
 		}
 		//--------------------------------------------------------------------
 
-		BIND_INLINE _ty* const		operator->()								{ return getInternal(); }
+		BIND_INLINE _ty* const		operator->()									{ return getInternal(); }
 		BIND_INLINE					operator _ty* const ()						{ return getInternal(); }
 		BIND_INLINE	_ty* const		get()										{ return getInternal(); }
 		//--------------------------------------------------------------------
@@ -163,6 +173,110 @@ namespace binderoo
 			return (_ty* const)pObjectInstance;
 		}
 		//--------------------------------------------------------------------
+
+		friend class RefCountedImportedClassInstance< typename _ty >;
+		ptrdiff_t iRefCount;
+	};
+	//------------------------------------------------------------------------
+
+	template< typename _ty >
+	class RefCountedImportedClassInstance
+	{
+		typedef typename ImportedClassInstance< _ty >				ImportedClass;
+
+	public:
+		BIND_INLINE RefCountedImportedClassInstance()
+			: pRefCountedInstance( nullptr )
+		{
+		}
+		//--------------------------------------------------------------------
+
+		BIND_INLINE RefCountedImportedClassInstance( const RefCountedImportedClassInstance& lval )
+			: pRefCountedInstance( lval.pRefCountedInstance )
+		{
+			if( isAcquired() )
+			{
+				++pRefCountedInstance->iRefCount;
+			}
+		}
+		//--------------------------------------------------------------------
+
+		BIND_INLINE RefCountedImportedClassInstance( RefCountedImportedClassInstance&& rval )
+			: pRefCountedInstance( rval.pRefCountedInstance )
+		{
+			rval.pRefCountedInstance = nullptr;
+		}
+		//--------------------------------------------------------------------
+
+		BIND_INLINE ~RefCountedImportedClassInstance()
+		{
+			unacquire();
+		}
+		//--------------------------------------------------------------------
+
+		BIND_INLINE RefCountedImportedClassInstance& operator=( const RefCountedImportedClassInstance& lval )
+		{
+			unacquire();
+
+			pRefCountedInstance = lval.pRefCountedInstance;
+			if( isAcquired() )
+			{
+				++pRefCountedInstance->iRefCount;
+			}
+
+			return *this;
+		}
+		//--------------------------------------------------------------------
+
+		BIND_INLINE RefCountedImportedClassInstance& operator=( RefCountedImportedClassInstance&& rval )
+		{
+			unacquire();
+
+			pRefCountedInstance = rval.pRefCountedInstance;
+			rval.pRefCountedInstance = nullptr;
+			return *this;
+		}
+		//--------------------------------------------------------------------
+
+		BIND_INLINE void			createNewInstance( const char* pClassName = ImportedClass::NameProvider::getDName() )
+		{
+			unacquire();
+			create( pClassName );
+		}
+		//--------------------------------------------------------------------
+
+		BIND_INLINE bool			isAcquired() const							{ return pRefCountedInstance != nullptr; }
+		BIND_INLINE ptrdiff_t		getRefCount() const							{ return isAcquired() ? pRefCountedInstance->iRefCount : 0; }
+		BIND_INLINE _ty* const		operator->()									{ return isAcquired() ? pRefCountedInstance->get() : nullptr; }
+		BIND_INLINE					operator _ty* const ()						{ return isAcquired() ? pRefCountedInstance->get() : nullptr; }
+		BIND_INLINE	_ty* const		get()										{ return isAcquired() ? pRefCountedInstance->get() : nullptr; }
+		//--------------------------------------------------------------------
+
+	private:
+		BIND_INLINE void unacquire()
+		{
+			if( isAcquired() && !--pRefCountedInstance->iRefCount )
+			{
+				destroy();
+			}
+		}
+		//--------------------------------------------------------------------
+
+		BIND_INLINE void create( const char* pClassName )
+		{
+			pRefCountedInstance = AllocatorFunctions< AllocatorSpace::Host >::allocAndConstruct< ImportedClass >( pClassName, true );
+			++pRefCountedInstance->iRefCount;
+		}
+		//--------------------------------------------------------------------
+
+		BIND_INLINE void destroy( )
+		{
+			AllocatorFunctions< AllocatorSpace::Host >::destructAndFree( pRefCountedInstance );
+			pRefCountedInstance = nullptr;
+		}
+		//--------------------------------------------------------------------
+
+		ImportedClass*				pRefCountedInstance;
 	};
 	//------------------------------------------------------------------------
 
@@ -178,39 +292,53 @@ namespace binderoo
 		{
 			Host::getActiveHost()->registerImportedFunction( this );
 		}
+		//--------------------------------------------------------------------
 
 		BIND_INLINE ~ImportedFunction()
 		{
 			Host::getActiveHost()->deregisterImportedFunction( this );
 		}
+		//--------------------------------------------------------------------
 
 		template< typename... Args >
 		BIND_INLINE typename ThisType::return_type operator() ( typename Args ...args )
 		{
 			return getInternal()( args... );
 		}
+		//--------------------------------------------------------------------
 
 		BIND_INLINE const char* getSignature() const
 		{
 			return getDescriptor()->strFunctionSignature.data();
 		}
+		//--------------------------------------------------------------------
 
 		BIND_INLINE uint64_t getSignatureHash() const
 		{
 			return getDescriptor()->functionHashes.uFunctionSignatureHash;
 		}
+		//--------------------------------------------------------------------
+
+		BIND_INLINE bool valid() const
+		{
+			return pObjectInstance != nullptr;
+		}
+		//--------------------------------------------------------------------
 
 	private:
 		BIND_INLINE typename ThisType::signature getInternal()
 		{
 			return (typename ThisType::signature)pObjectInstance;
 		}
+		//--------------------------------------------------------------------
 
 		BIND_INLINE const BoundFunction*				getDescriptor() const
 		{
 			return (const BoundFunction*)pObjectDescriptor;
 		}
+		//--------------------------------------------------------------------
 	};
+	//------------------------------------------------------------------------
 
 #elif BIND_CPPVERSION == BIND_MSVC2012
 	template< typename _functiontraits >
