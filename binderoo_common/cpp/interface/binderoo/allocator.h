@@ -72,7 +72,8 @@ namespace binderoo
 		}
 		//--------------------------------------------------------------------
 
-		// This does not construct data. It only allocates.
+		// This does not construct data. It only allocates to the specified
+		// aignment.
 		template< typename _ty >
 		static BIND_INLINE _ty*	alloc( size_t alignment = BIND_ALIGNOF( _ty ) )
 		{
@@ -80,10 +81,19 @@ namespace binderoo
 		}
 		//--------------------------------------------------------------------
 
-		template< typename _ty >
-		static BIND_INLINE _ty*	allocAndConstruct( size_t alignment = BIND_ALIGNOF( _ty ) )
+		// Allocates and constructs with default object alignment
+		template< typename _ty, typename... _args >
+		static BIND_INLINE _ty*	allocAndConstruct( _args... args )
 		{
-			return new( alloc( sizeof( _ty ), alignment ) ) _ty;
+			return new( alloc( sizeof( _ty ), BIND_ALIGNOF( _ty ) ) ) _ty( args... );
+		}
+		//--------------------------------------------------------------------
+
+		// Allocates and constructs with specified object alignment
+		template< typename _ty, typename... _args >
+		static BIND_INLINE _ty*	allocAndConstructAligned( size_t alignment, _args... args )
+		{
+			return new( alloc( sizeof( _ty ), alignment ) ) _ty( args... );
 		}
 		//--------------------------------------------------------------------
 
