@@ -259,20 +259,23 @@ namespace binderoo
 			{
 				destroy();
 			}
+			pRefCountedInstance = nullptr;
 		}
 		//--------------------------------------------------------------------
 
 		BIND_INLINE void create( const char* pClassName )
 		{
 			pRefCountedInstance = AllocatorFunctions< AllocatorSpace::Host >::allocAndConstruct< ImportedClass >( pClassName, true );
-			++pRefCountedInstance->iRefCount;
+			if( pRefCountedInstance )
+			{
+				++pRefCountedInstance->iRefCount;
+			}
 		}
 		//--------------------------------------------------------------------
 
 		BIND_INLINE void destroy( )
 		{
 			AllocatorFunctions< AllocatorSpace::Host >::destructAndFree( pRefCountedInstance );
-			pRefCountedInstance = nullptr;
 		}
 		//--------------------------------------------------------------------
 
