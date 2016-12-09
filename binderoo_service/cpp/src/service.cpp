@@ -44,6 +44,8 @@ binderoo::AllocatorFunc				binderoo::AllocatorFunctions< binderoo::AllocatorSpac
 binderoo::DeallocatorFunc			binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Service >::fFree		= nullptr;
 binderoo::CAllocatorFunc			binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Service >::fCalloc		= nullptr;
 binderoo::ReallocatorFunc			binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Service >::fRealloc		= nullptr;
+
+binderoo::Service*					binderoo::Service::spInstance = nullptr;
 //----------------------------------------------------------------------------
 
 namespace binderoo
@@ -264,7 +266,18 @@ namespace binderoo
 	};
 	//------------------------------------------------------------------------
 
-	bool compile( const Compiler& compiler, const ModuleVersion& version, const MonitoredFolder& folder, const Containers< AllocatorSpace::Service >::StringVector& vecInputFiles, Containers< AllocatorSpace::Service >::InternalString& strOutputError )
+	void makeSureDirectoryIsThere( const Containers< AllocatorSpace::Service >::InternalString& strFolder )
+	{
+		if( !FileUtils< AllocatorSpace::Service >::exists( strFolder ) || !FileUtils< AllocatorSpace::Service >::isDirectory( strFolder ) )
+		{
+			FileUtils< AllocatorSpace::Service >::createDirectory( strFolder );
+		}
+	}
+
+	bool compile(	const Compiler& compiler, const ModuleVersion& version, const MonitoredFolder& folder,
+					const Containers< AllocatorSpace::Service >::StringVector& vecInputFiles,
+					Containers< AllocatorSpace::Service >::InternalString& strOutputError,
+					bool bForRapidIteration )
 	{
 		if( !vecInputFiles.empty() )
 		{
@@ -273,16 +286,10 @@ namespace binderoo
 			Containers< AllocatorSpace::Service >::InternalString strLibraryOutputName = strLibraryName;
 			
 			Containers< AllocatorSpace::Service >::InternalString strBinderooTemp = FileUtils< AllocatorSpace::Service >::getTempDirectory();
-			if( !FileUtils< AllocatorSpace::Service >::exists( strBinderooTemp ) || !FileUtils< AllocatorSpace::Service >::isDirectory( strBinderooTemp ) )
-			{
-				FileUtils< AllocatorSpace::Service >::createDirectory( strBinderooTemp );
-			}
+			makeSureDirectoryIsThere( strBinderooTemp );
 
 			strBinderooTemp += "service/";
-			if( !FileUtils< AllocatorSpace::Service >::exists( strBinderooTemp ) || !FileUtils< AllocatorSpace::Service >::isDirectory( strBinderooTemp ) )
-			{
-				FileUtils< AllocatorSpace::Service >::createDirectory( strBinderooTemp );
-			}
+			makeSureDirectoryIsThere( strBinderooTemp );
 
 			if( strVersionName.length() > 0 )
 			{
@@ -293,16 +300,15 @@ namespace binderoo
 			{
 				strBinderooTemp += "__noversion__/";
 			}
-
-			if( !FileUtils< AllocatorSpace::Service >::exists( strBinderooTemp ) || !FileUtils< AllocatorSpace::Service >::isDirectory( strBinderooTemp ) )
-			{
-				FileUtils< AllocatorSpace::Service >::createDirectory( strBinderooTemp );
-			}
+			makeSureDirectoryIsThere( strBinderooTemp );
 
 			Containers< AllocatorSpace::Service >::InternalString strTempRoot = strBinderooTemp + strLibraryName + "/";
-			if( !FileUtils< AllocatorSpace::Service >::exists( strTempRoot ) || !FileUtils< AllocatorSpace::Service >::isDirectory( strTempRoot ) )
+			makeSureDirectoryIsThere( strTempRoot );
+
+			if( bForRapidIteration )
 			{
-				FileUtils< AllocatorSpace::Service >::createDirectory( strTempRoot );
+				strTempRoot += "rapid/";
+				makeSureDirectoryIsThere( strTempRoot );
 			}
 
 			Containers< AllocatorSpace::Service >::InternalString strCompilerExecutable = Containers< AllocatorSpace::Service >::InternalString( compiler.strCompilerLocation.data(), compiler.strCompilerLocation.length() );
@@ -325,7 +331,11 @@ namespace binderoo
 				strVersions += Containers< AllocatorSpace::Service >::InternalString( token.data(), token.length() );
 			}
 
-			Containers< AllocatorSpace::Service >::InternalString strArguments = "-d -v -m64 -debug -g -L/DLL";
+			Containers< AllocatorSpace::Service >::InternalString strArguments = "-d -m64 -g -L/DLL";
+			if( bForRapidIteration )
+			{
+				strArguments += " -debug";
+			}
 			strArguments += strOutput;
 			strArguments += strDeps;
 			strArguments += strVersions;
@@ -350,12 +360,14 @@ namespace binderoo
 			if( compileProcess.succeeded() )
 			{
 				Containers< AllocatorSpace::Service >::InternalString strOutputPath( folder.strOutputFolder.data(), folder.strOutputFolder.length() );
+				makeSureDirectoryIsThere( strOutputPath );
 
-				if( !FileUtils< AllocatorSpace::Service >::exists( strOutputPath ) || !FileUtils< AllocatorSpace::Service >::isDirectory( strOutputPath ) )
+				if( bForRapidIteration )
 				{
-					FileUtils< AllocatorSpace::Service >::createDirectory( strOutputPath );
+					strOutputPath += "rapid/";
+					makeSureDirectoryIsThere( strOutputPath );
 				}
-	
+
 				Containers< AllocatorSpace::Service >::InternalString strDLLSource = strTempRoot + strLibraryOutputName + ".dll";
 				Containers< AllocatorSpace::Service >::InternalString strPDBSource = strTempRoot + strLibraryOutputName + ".pdb";
 
@@ -388,23 +400,31 @@ namespace binderoo
 		ServiceImplementation( ServiceConfiguration& configuration );
 		~ServiceImplementation();
 
-		int32_t threadFunction( ThreadOSUpdateFunction threadOSUpdate );
+		int32_t						threadFunction( ThreadOSUpdateFunction threadOSUpdate );
+
+		void						setRapidIterationMode( bool bSet );
+		bool						isInRapidIterationMode( ) const;
+		void						compileClients( CompileFinishedCallback callWhenDone );
 
 	private:
-		bool compileFolder( binderoo::MonitoredFolder& folder );
+		bool						compileFolder( binderoo::MonitoredFolder& folder, bool bRapidIterationMode );
 
-		void logInfo( const char* pMessage );
-		void logWarning( const char* pMessage );
-		void logError( const char* pMessage );
+		void						logInfo( const char* pMessage );
+		void						logWarning( const char* pMessage );
+		void						logError( const char* pMessage );
 
-		SharedEvent				reloadEvent;
+		SharedEvent					reloadEvent;
 
-		FileWatcher*			pWatcher;
+		FileWatcher*				pWatcher;
 
-		ServiceConfiguration*	pConfiguration;
-		void*					pThread;
-		std::atomic< bool >		bHaltExecution;
-		std::atomic< bool >		bRunning;
+		ServiceConfiguration*		pConfiguration;
+		void*						pThread;
+
+		CompileFinishedCallback		compileFinishedCallback;
+		std::atomic< int32_t >		iNumCompilesRequested;
+		std::atomic< bool >			bInRapidIterationMode;
+		std::atomic< bool >			bHaltExecution;
+		std::atomic< bool >			bRunning;
 	};
 }
 //----------------------------------------------------------------------------
@@ -414,6 +434,8 @@ binderoo::ServiceImplementation::ServiceImplementation( ServiceConfiguration& co
 	, pWatcher( nullptr )
 	, pConfiguration( &configuration )
 	, pThread( nullptr )
+	, iNumCompilesRequested( 0 )
+	, bInRapidIterationMode( configuration.bStartInRapidIterationMode )
 	, bHaltExecution( false )
 	, bRunning( false )
 {
@@ -444,41 +466,57 @@ int32_t binderoo::ServiceImplementation::threadFunction( binderoo::ThreadOSUpdat
 	new( pWatcher ) FileWatcher( pConfiguration->folders );
 
 	std::set< MonitoredFolder* > changedFolders;
-
-	logInfo( "Binderoo service started, performing fresh compile..." );
-
 	for( auto& folder : pConfiguration->folders )
 	{
 		// std::set doesn't have a reserve function. This is essentially a hack, but should reserve all our memory.
 		changedFolders.insert( &folder );
 	}
 
-	// Kick off a recompile to begin with since we don't track state anywhere
-	bool bInitialCompileSuccessful = true;
-	for( auto& folder : pConfiguration->folders )
-	{
-		bInitialCompileSuccessful &= compileFolder( folder );
-	}
+	logInfo( "Binderoo Service: Started" );
 
-	if( bInitialCompileSuccessful )
-	{
-		logInfo( "Changed modules recompiled successfully. Reload is being triggered." );
-		reloadEvent.signal();
-	}
-	else
-	{
-		logError( "Errors were encountered. Reload is NOT being triggered." );
-	}
+	bool bWasInRapidMode = false;
 
 	while( !bHaltExecution )
 	{
+		changedFolders.clear();
+
+		bool bNowInRapidMode = bInRapidIterationMode.load();
+		if( !bWasInRapidMode && bNowInRapidMode )
+		{
+			logInfo( "Binderoo Service Rapid Iteration: Started, performing initial compile." );
+
+			// Kick off a recompile to begin with since we don't track state anywhere
+			bool bInitialCompileSuccessful = true;
+			for( auto& folder : pConfiguration->folders )
+			{
+				bInitialCompileSuccessful &= compileFolder( folder, true );
+			}
+
+			if( bInitialCompileSuccessful )
+			{
+				logInfo( "Binderoo Service Rapid Iteration: Initial compile was successful. Reload is being triggered." );
+				reloadEvent.signal();
+			}
+			else
+			{
+				logError( "Binderoo Service Rapid Iteration: Errors were encountered in initial compile. Reload is NOT being triggered." );
+			}
+		}
+		else if( bWasInRapidMode && !bNowInRapidMode )
+		{
+			logInfo( "Binderoo Service Rapid Iteration: Stopped." );
+		}
+		bWasInRapidMode = bNowInRapidMode;
+
 		threadOSUpdate();
 
 		::SleepEx( 1000, true );
 
-		if( pWatcher->detectFileChanges() )
+		CompileFinishedCallback compileFinished;
+		bool bCompileRapidIteration = bInRapidIterationMode.load();
+
+		if( bCompileRapidIteration && pWatcher->detectFileChanges() )
 		{
-			changedFolders.clear();
 			const ChangedFilesVector& changedFiles = pWatcher->getChangedFiles();
 
 			bool bImportPathsChanged = false;
@@ -489,38 +527,58 @@ int32_t binderoo::ServiceImplementation::threadFunction( binderoo::ThreadOSUpdat
 				bImportPathsChanged |= ( changedFile.pThisFolder->eType == binderoo::MonitoredFolderType::ImportsPath );
 			}
 
-			bool bCompiledAll = false;
 			if( bImportPathsChanged )
 			{
-				logInfo( "Import path change detected. Recompiling all." );
+				logInfo( "Binderoo Service Rapid Iteration: Import path change detected. Recompiling all." );
 
-				bCompiledAll = true;
-				// Recompile all
+				changedFolders.clear();
 				for( auto& folder : pConfiguration->folders )
 				{
-					bCompiledAll &= compileFolder( folder );
+					// std::set doesn't have a reserve function. This is essentially a hack, but should reserve all our memory.
+					changedFolders.insert( &folder );
 				}
 			}
 			else
 			{
-				logInfo( "Module change detected. Recompiling some." );
+				logInfo( "Binderoo Service Rapid Iteration: Module change detected. Recompiling some." );
+			}
+		}
+		else if( iNumCompilesRequested.load() > 0 )
+		{
+			bCompileRapidIteration = false;
+			compileFinished = compileFinishedCallback;
+			--iNumCompilesRequested;
+			logInfo( "Binderoo Service: Recompile requested." );
 
-				bCompiledAll = true;
-				// Recompile only changed clients
-				for( auto& changedFolder : changedFolders )
-				{
-					bCompiledAll &= compileFolder( *changedFolder );
-				}
+			for( auto& folder : pConfiguration->folders )
+			{
+				// std::set doesn't have a reserve function. This is essentially a hack, but should reserve all our memory.
+				changedFolders.insert( &folder );
+			}
+		}
+
+		if( !changedFolders.empty() )
+		{
+			bool bCompiledAll = true;
+			// Recompile only changed clients
+			for( auto& changedFolder : changedFolders )
+			{
+				bCompiledAll &= compileFolder( *changedFolder, bCompileRapidIteration );
 			}
 
 			if( bCompiledAll )
 			{
-				logInfo( "Changed modules recompiled successfully. Reload is being triggered." );
+				logInfo( "Binderoo Service: Changed modules recompiled successfully. Reload is being triggered." );
 				reloadEvent.signal();
 			}
 			else
 			{
-				logError( "Errors were encountered. Reload is NOT being triggered." );
+				logError( "Binderoo Service: Errors were encountered. Reload is NOT being triggered." );
+			}
+
+			if( !compileFinished.empty() )
+			{
+				compileFinished( bCompiledAll );
 			}
 		}
 	}
@@ -531,7 +589,26 @@ int32_t binderoo::ServiceImplementation::threadFunction( binderoo::ThreadOSUpdat
 }
 //----------------------------------------------------------------------------
 
-bool binderoo::ServiceImplementation::compileFolder( binderoo::MonitoredFolder& folder )
+void binderoo::ServiceImplementation::setRapidIterationMode( bool bSet )
+{
+	bInRapidIterationMode = bSet;
+}
+//----------------------------------------------------------------------------
+
+bool binderoo::ServiceImplementation::isInRapidIterationMode( ) const
+{
+	return bInRapidIterationMode.load();
+}
+//----------------------------------------------------------------------------
+
+void binderoo::ServiceImplementation::compileClients( CompileFinishedCallback callWhenDone )
+{
+	compileFinishedCallback = callWhenDone;
+	++iNumCompilesRequested;
+}
+//----------------------------------------------------------------------------
+
+bool binderoo::ServiceImplementation::compileFolder( binderoo::MonitoredFolder& folder, bool bRapidIterationMode )
 {
 	if( folder.eType == binderoo::MonitoredFolderType::ClientPath )
 	{
@@ -556,7 +633,7 @@ bool binderoo::ServiceImplementation::compileFolder( binderoo::MonitoredFolder& 
 			for( ModuleVersion& version : pConfiguration->versions )
 			{
 				strError.clear();
-				bCompiled &= binderoo::compile( pConfiguration->compilers[ 0 ], version, folder, vecAllFiles, strError );
+				bCompiled &= binderoo::compile( pConfiguration->compilers[ 0 ], version, folder, vecAllFiles, strError, bRapidIterationMode );
 				if( !strError.empty() )
 				{
 					Containers< AllocatorSpace::Service >::InternalString strErrorMessage;
@@ -575,7 +652,7 @@ bool binderoo::ServiceImplementation::compileFolder( binderoo::MonitoredFolder& 
 		{
 			strError.clear();
 			ModuleVersion dummyVersion;
-			bCompiled &= binderoo::compile( pConfiguration->compilers[ 0 ], dummyVersion, folder, vecAllFiles, strError );
+			bCompiled &= binderoo::compile( pConfiguration->compilers[ 0 ], dummyVersion, folder, vecAllFiles, strError, bRapidIterationMode );
 
 			if( !strError.empty() )
 			{
@@ -637,6 +714,8 @@ binderoo::Service::Service( ServiceConfiguration& configuration )
 
 	pImplementation = (ServiceImplementation*)config.alloc( sizeof( ServiceImplementation ), sizeof( size_t ) );
 	new( pImplementation ) ServiceImplementation( config );
+
+	spInstance = this;
 }
 //----------------------------------------------------------------------------
 
@@ -647,6 +726,24 @@ binderoo::Service::~Service()
 	config.free( pImplementation );
 
 	binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Service >::setup( nullptr, nullptr, nullptr, nullptr );
+}
+//----------------------------------------------------------------------------
+
+void binderoo::Service::setRapidIterationMode( bool bSet )
+{
+	pImplementation->setRapidIterationMode( bSet );
+}
+//----------------------------------------------------------------------------
+
+bool binderoo::Service::isInRapidIterationMode( ) const
+{
+	return pImplementation->isInRapidIterationMode();
+}
+//----------------------------------------------------------------------------
+
+void binderoo::Service::compileClients( CompileFinishedCallback callWhenDone )
+{
+	pImplementation->compileClients( callWhenDone );
 }
 //----------------------------------------------------------------------------
 

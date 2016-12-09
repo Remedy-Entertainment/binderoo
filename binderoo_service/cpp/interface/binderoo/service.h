@@ -75,6 +75,7 @@ namespace binderoo
 	typedef void(* LogInfoFunction )( const char* );
 	typedef void(* LogWarningFunction )( const char* );
 	typedef void(* LogErrorFunction )( const char* );
+	//------------------------------------------------------------------------
 
 	struct ServiceConfiguration
 	{
@@ -89,6 +90,7 @@ namespace binderoo
 			, create_thread( nullptr )
 			, sleep_thread( nullptr )
 			, destroy_thread( nullptr )
+			, bStartInRapidIterationMode( false )
 		{
 		}
 
@@ -113,19 +115,36 @@ namespace binderoo
 		LogInfoFunction						log_info;
 		LogWarningFunction					log_warning;
 		LogErrorFunction					log_error;
+
+		bool								bStartInRapidIterationMode;
 	};
+	//------------------------------------------------------------------------
 
 	class ServiceImplementation;
 
-	class Service
+	typedef fastdelegate::FastDelegate1< bool, void > CompileFinishedCallback;
+	//------------------------------------------------------------------------
+
+	class BIND_DLL Service
 	{
 	public:
 		Service( ServiceConfiguration& configuration );
 		~Service();
+		//--------------------------------------------------------------------
+
+		void						setRapidIterationMode( bool bSet );
+		bool						isInRapidIterationMode( ) const;
+		void						compileClients( CompileFinishedCallback callWhenDone );
+		//--------------------------------------------------------------------
+
+		static BIND_INLINE Service*	getInstance()								{ return spInstance; }
+		//--------------------------------------------------------------------
 
 	private:
 		ServiceConfiguration		config;
 		ServiceImplementation*		pImplementation;
+
+		static Service*				spInstance;
 	};
 	//------------------------------------------------------------------------
 }
