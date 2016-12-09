@@ -179,7 +179,7 @@ namespace binderoo
 	};
 	//------------------------------------------------------------------------
 
-	class HostImplementation
+	class HostImplementation // It doesn't look like anything to me.
 	{
 	public:
 		typedef Allocator< AllocatorSpace::Host, void, 16 >													DefaultAllocator;
@@ -203,6 +203,10 @@ namespace binderoo
 		//--------------------------------------------------------------------
 
 		HostImplementation( HostConfiguration& config );
+		//--------------------------------------------------------------------
+
+		void						setRapidIterationMode( bool bSet );
+		bool						isInRapidIterationMode( ) const;
 		//--------------------------------------------------------------------
 
 		bool						checkForReloads();
@@ -269,6 +273,7 @@ namespace binderoo
 		ImportedObjectVector		vecImportClassInstances;
 
 		bool						bReloadLibs;
+		bool						bInRapidIterationMode;
 	};
 	//------------------------------------------------------------------------
 }
@@ -294,6 +299,18 @@ binderoo::Host::~Host()
 	pActiveHost = nullptr;
 
 	configuration.free( pImplementation );
+}
+//----------------------------------------------------------------------------
+
+void binderoo::Host::setRapidIterationMode( bool bSet )
+{
+	pImplementation->setRapidIterationMode( bSet );
+}
+//----------------------------------------------------------------------------
+
+bool binderoo::Host::isInRapidIterationMode( ) const
+{
+	return pImplementation->isInRapidIterationMode();
 }
 //----------------------------------------------------------------------------
 
@@ -366,6 +383,7 @@ const char* binderoo::Host::generateCPPStyleBindingDeclarationsForAllObjects( co
 binderoo::HostImplementation::HostImplementation( HostConfiguration& config )
 	: configuration( config )
 	, reloadEvent( "binderoo_service_reload" )
+	, bInRapidIterationMode( config.bStartInRapidIterationMode )
 	, bReloadLibs( false )
 {
 	collectExports();
@@ -374,9 +392,25 @@ binderoo::HostImplementation::HostImplementation( HostConfiguration& config )
 }
 //----------------------------------------------------------------------------
 
+void binderoo::HostImplementation::setRapidIterationMode( bool bSet )
+{
+	if( bInRapidIterationMode != bSet )
+	{
+		bReloadLibs = true;
+	}
+	bInRapidIterationMode = bSet;
+}
+//----------------------------------------------------------------------------
+
+bool binderoo::HostImplementation::isInRapidIterationMode( ) const
+{
+	return bInRapidIterationMode;
+}
+//----------------------------------------------------------------------------
+
 bool binderoo::HostImplementation::checkForReloads()
 {
-	bReloadLibs |= reloadEvent.waitOn( 0 );
+	bReloadLibs |= ( reloadEvent.waitOn( 0 ) && bInRapidIterationMode );
 	return bReloadLibs;
 }
 //----------------------------------------------------------------------------
@@ -558,6 +592,11 @@ void binderoo::HostImplementation::collectDynamicLibraries()
 		if( strSearchPath.back() != '/' )
 		{
 			strSearchPath += '/';
+		}
+
+		if( bInRapidIterationMode )
+		{
+			strSearchPath += "/rapid/";
 		}
 
 		InternalString strSearchPattern = strSearchPath;

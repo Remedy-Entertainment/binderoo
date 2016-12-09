@@ -68,6 +68,8 @@ namespace binderoo
 		LogFunc								log_info;
 		LogFunc								log_warning;
 		LogFunc								log_error;
+
+		bool								bStartInRapidIterationMode;
 	};
 	//------------------------------------------------------------------------
 
@@ -78,11 +80,15 @@ namespace binderoo
 		~Host();
 		//--------------------------------------------------------------------
 
-		bool checkForReloads();
-		void performReloads();
+		void								setRapidIterationMode( bool bSet );
+		bool								isInRapidIterationMode( ) const;
 		//--------------------------------------------------------------------
 
-		BIND_INLINE void checkForAndPerformReloads( bool bForce = false )
+		bool								checkForReloads();
+		void								performReloads();
+		//--------------------------------------------------------------------
+
+		BIND_INLINE void					checkForAndPerformReloads( bool bForce = false )
 		{
 			if( checkForReloads() || bForce )
 			{
@@ -119,34 +125,34 @@ namespace binderoo
 		}
 		//--------------------------------------------------------------------
 
-		void* createImportedClass( const char* pName );
-		bool destroyImportedClass( const char* pName, void* pObject );
+		void*								createImportedClass( const char* pName );
+		bool								destroyImportedClass( const char* pName, void* pObject );
 		//--------------------------------------------------------------------
 
 		template< typename _ty >
-		BIND_INLINE _ty* createImportedClass()									{ return (_ty*)createImportedClass( TypeNames< _ty >::getDName() ); }
+		BIND_INLINE _ty*					createImportedClass()				{ return (_ty*)createImportedClass( TypeNames< _ty >::getDName() ); }
 		//--------------------------------------------------------------------
 
 		template< typename _ty >
-		BIND_INLINE bool destroyImportedClass( void* pObj )						{ return destroyImportedClass( TypeNames< _ty >::getDName(), pObj ); }
+		BIND_INLINE bool					destroyImportedClass( void* pObj )	{ return destroyImportedClass( TypeNames< _ty >::getDName(), pObj ); }
 		//--------------------------------------------------------------------
 
-		const BoundFunction* getImportedFunctionDetails( const char* pName ) const;
+		const BoundFunction*				getImportedFunctionDetails( const char* pName ) const;
 		//--------------------------------------------------------------------
 
 		// Returns a string allocated with your unaligned_alloc function that represents
 		// the required #defines to bind a C++ object to the system
-		const char* generateCPPStyleBindingDeclarationsForAllObjects( const char* pVersions );
+		const char*							generateCPPStyleBindingDeclarationsForAllObjects( const char* pVersions );
 		//--------------------------------------------------------------------
 
 		static BIND_INLINE Host*			getActiveHost()						{ return pActiveHost; }
 
 	private:
-		void registerImportedClassInstance( ImportedBase* pInstance );
-		void deregisterImportedClassInstance( ImportedBase* pInstance );
+		void								registerImportedClassInstance( ImportedBase* pInstance );
+		void								deregisterImportedClassInstance( ImportedBase* pInstance );
 
-		void registerImportedFunction( ImportedBase* pInstance );
-		void deregisterImportedFunction( ImportedBase* pInstance );
+		void								registerImportedFunction( ImportedBase* pInstance );
+		void								deregisterImportedFunction( ImportedBase* pInstance );
 		//--------------------------------------------------------------------
 
 		static Host*						pActiveHost;
