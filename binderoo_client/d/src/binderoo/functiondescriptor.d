@@ -671,10 +671,133 @@ struct FunctionString( Desc ) if( IsFunctionDescriptor!( Desc )() )
 }
 //----------------------------------------------------------------------------
 
-template FunctionString( alias T )
+/+template FunctionString( alias symbol )
 {
-	alias FunctionString = FunctionString!( typeof( T ) );
+	// Signature that we can parse, aw yis.
+	static string			DSignature()()				{ return typeof( symbol ).stringof; }
+	static string			CSignature()()				{ return generateCSignature(); }
+
+	static string			ParameterNames()()			{ return generateDParameterString( ParameterInfo.Names ); }
+	static string			ParameterDeclarations()()	{ return generateDParameterString( ParameterInfo.Names | ParameterInfo.Types ); }
+	static string			ParameterTypes()()			{ return generateDParameterString( ParameterInfo.Types ); }
+
+	static string			DDeclNoLinkage()()							{ return generateFullyQualifiedName!( "FullyQualifiedDDecl" )(); }
+	static string			DDeclNoLinkageRename( alias to )()			{ return generateFullyQualifiedName!( "FullyQualifiedDDecl", to )(); }
+	static string			DDeclNoLinkagePrependName( alias pre )()	{ return generateFullyQualifiedName!( "FullyQualifiedDDecl", pre ~ __traits( identifier, symbol ) )(); }
+
+	static string			DDecl()()					{ return Linkage() ~ DDeclNoLinkage(); }
+	static string			CDecl()()					{ return generateFullyQualifiedName!( "CDecl" )(); }
+
+	static string			DCall()()					{ return generateDCall(); }
+	//------------------------------------------------------------------------
+
+	private static string	Linkage()()
+	{
+		enum LinkageOfT = std.traits.functionLinkage!( symbol );
+		static if( LinkageOfT == "D" ) return "";
+		else return "extern( " ~ Desc.Linkage ~ " ) ";
+	}
+
+	struct Parameter( uint iIndex )
+	{
+		alias				BaseParam					= TypeDescriptor.Parameter!( iIndex );
+
+		alias				Name						= BaseParam.Name;
+
+		package enum		DDecl						= TypeString!( BaseParam.Descriptor ).DDecl ~ " " ~ BaseParam.Name;
+		package enum		FullyQualifiedDDecl			= TypeString!( BaseParam.Descriptor ).FullyQualifiedDDecl ~ " " ~ BaseParam.Name;
+		package enum		CDecl						= TypeString!( BaseParam.Descriptor ).CDecl ~ ( BaseParam.Descriptor.IsClass ? "* " : " " ) ~ BaseParam.Name;
+	}
+	//------------------------------------------------------------------------
+
+	private static string generateCSignature()
+	{
+		enum ConstString = ( std.traits.functionAttributes!( symbol ) & std.traits.FunctionAttribute.const_ ) ? " const" : "";
+		alias ReturnType = std.traits.ReturnType!( symbol );
+		enum IsRef = ( std.traits.functionAttributes!( symbol ) & std.traits.FunctionAttribute.ref_ ) != 0;
+
+		string generateParameterString()
+		{
+			string[] parameterTypes;
+			foreach( Parameter; TypeDescriptor.ParametersAsTuple )
+			{
+				parameterTypes ~= TypeString!( Parameter.Descriptor ).CDecl;
+			}
+			return parameterTypes.joinWith( ", " );
+		}
+
+		return TypeString!( ReturnType, IsRef ).CDecl ~ "(" ~ generateParameterString() ~ ")" ~ ConstString;
+	}
+	//------------------------------------------------------------------------
+
+	private static string generateFullyQualifiedName( alias stringSymbol, alias renameString = __traits( identifier, symbol ) )()
+	{
+		enum ConstString = ( std.traits.functionAttributes!( symbol ) & std.traits.FunctionAttribute.const_ ) ? " const" : "";
+		alias ReturnType = std.traits.ReturnType!( symbol );
+		enum IsRef = ( std.traits.functionAttributes!( symbol ) & std.traits.FunctionAttribute.ref_ ) != 0;
+		enum StaticString = __traits( isStaticFunction, symbol ) ? "static " : "";
+		enum MakePointer = is( ReturnType == class ) || is( ReturnType == interface );
+
+		string generateParameterString( uint iIndex )()
+		{
+			static if( iIndex >= TypeDescriptor.ParameterCount )
+			{
+				return "";
+			}
+			else
+			{
+				return mixin( "Parameter!( iIndex )." ~ stringSymbol ) ~ ( iIndex < TypeDescriptor.ParameterCount - 1 ? ", " : " " ) ~ generateParameterString!( iIndex + 1 )();
+			}
+		}
+
+		static if( stringSymbol == "CDecl" )
+		{
+			enum pointerString = MakePointer ? "* " : " ";
+		}
+		else
+		{
+			enum pointerString = " ";
+		}
+
+		return StaticString ~ mixin( "TypeString!( ReturnType, IsRef )." ~ stringSymbol ) ~ pointerString ~ renameString ~ "( " ~ generateParameterString!( 0 )() ~ ")" ~ ConstString;
+	};
+	//------------------------------------------------------------------------
+
+	enum ParameterInfo
+	{
+		Names = 0x1,
+		Types = 0x2,
+	}
+
+	private static string generateDParameterString( ParameterInfo eInfo )
+	{
+		string[] parameters;
+
+		foreach( Parameter; TypeDescriptor.ParametersAsTuple )
+		{
+			if( ( eInfo & ParameterInfo.Types ) && ( eInfo & ParameterInfo.Names ) )
+			{
+				parameters ~= TypeString!( Parameter.Descriptor ).DDecl ~ " " ~ Parameter.Name;
+			}
+			else if( eInfo & ParameterInfo.Types )
+			{
+				parameters ~= TypeString!( Parameter.Descriptor ).DDecl;
+			}
+			else if( eInfo & ParameterInfo.Names )
+			{
+				parameters ~= Parameter.Name;
+			}
+		}
+
+		return parameters.joinWith( ", " );
+	}
+
+	private static string generateDCall()
+	{
+		return TypeDescriptor.FunctionName ~ "( " ~ ParameterNames ~ " )";
+	}
 }
 //----------------------------------------------------------------------------
++/
 
 //============================================================================
