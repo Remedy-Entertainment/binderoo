@@ -255,6 +255,7 @@ int main( int argc, char** argv )
 			configuration.log_info = nullptr;
 			configuration.log_warning = nullptr;
 			configuration.log_error = nullptr;
+			configuration.bStartInRapidIterationMode = false;
 
 			binderoo::Host host( configuration );
 
