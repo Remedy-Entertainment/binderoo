@@ -153,7 +153,7 @@ mixin template BindModuleImplementation( int iCurrentVersion = 0, AdditionalStat
 
 	static BoundObject[] generateObjects( ObjectTypes... )()
 	{
-		BoundObject[] gatherFor( Types... )()
+		BoundObject[] gatherFor( bool bRecursive, Types... )()
 		{
 			BoundObject[] objects;
 			foreach( Type; Types )
@@ -171,9 +171,12 @@ mixin template BindModuleImplementation( int iCurrentVersion = 0, AdditionalStat
 											BoundObjectFunctions!( Type ).TypeVal );
 				}
 
-				alias AllSubTypes = ModuleTypeDescriptors!( Type, __traits( allMembers, Type ) );
+				static if( bRecursive )
+				{
+					alias AllSubTypes = ModuleTypeDescriptors!( Type, __traits( allMembers, Type ) );
 
-				objects ~= gatherFor!( AllSubTypes )();
+					objects ~= gatherFor!( bRecursive, AllSubTypes )();
+				}
 			}
 
 			return objects;
@@ -184,12 +187,13 @@ mixin template BindModuleImplementation( int iCurrentVersion = 0, AdditionalStat
 		static if( ObjectTypes.length == 0 )
 		{
 			alias ModuleTypes = ModuleTypeDescriptors!( void, __traits( allMembers, mixin( moduleName!( functionsToImport ) ) ) );
+			return gatherFor!( true, ModuleTypes )();
 		}
 		else
 		{
 			alias ModuleTypes = ModuleTypeDescriptors!( void, ObjectTypes[ 0 ].stringof );
+			return gatherFor!( false, ModuleTypes )();
 		}
-		return gatherFor!( ModuleTypes )();
 	}
 	//------------------------------------------------------------------------
 
@@ -287,7 +291,7 @@ mixin template BindModuleImplementation( int iCurrentVersion = 0, AdditionalStat
 			return imports;
 		}
 
-		BoundFunction[] gatherFor( Types... )()
+		BoundFunction[] gatherFor( bool bRecursive, Types... )()
 		{
 			BoundFunction[] imports;
 			foreach( Type; Types )
@@ -297,7 +301,10 @@ mixin template BindModuleImplementation( int iCurrentVersion = 0, AdditionalStat
 				imports ~= TableGrabber!( Type, "__vtableData" )();
 				imports ~= TableGrabber!( Type, "__methodtableData" )();
 
-				imports ~= gatherFor!( ModuleTypeDescriptors!( Type, Members ) )();
+				static if( bRecursive )
+				{
+					imports ~= gatherFor!( bRecursive, ModuleTypeDescriptors!( Type, Members ) )();
+				}
 			}
 
 			return imports;
@@ -308,12 +315,13 @@ mixin template BindModuleImplementation( int iCurrentVersion = 0, AdditionalStat
 		static if( ImportTypes.length == 0 )
 		{
 			alias Types = ModuleTypeDescriptors!( void, __traits( allMembers, mixin( moduleName!( functionsToImport ) ) ) );
+			return gatherFor!( true, Types )();
 		}
 		else
 		{
 			alias Types = ModuleTypeDescriptors!( void, ImportTypes[ 0 ].stringof );
+			return gatherFor!( false, Types )();
 		}
-		return gatherFor!( Types )();
 	}
 
 	static BoundFunction[] generateExports( ExportTypes... )()
@@ -358,7 +366,6 @@ mixin template BindModuleImplementation( int iCurrentVersion = 0, AdditionalStat
 
 			return foundExports;
 		}
-
 
 		mixin( "import " ~ moduleName!( functionsToImport ) ~ ";" );
 		static if( ExportTypes.length == 0 )
