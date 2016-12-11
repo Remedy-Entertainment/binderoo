@@ -244,13 +244,11 @@ JSONValue serialise( Type )( ref Type object ) if( is( Type == struct ) || is( T
 	JSONValue objectRoot;
 	objectRoot.type = JSON_TYPE.OBJECT;
 
-	alias Variables = VariableDescriptors!( Type );
-
-	foreach( Variable; Variables )
+	foreach( iIndex, member; Type.init.tupleof )
 	{
-		static if( !Variable.IsStatic && Variable.IsMutable && !Variable.HasUDA!( BindNoSerialise ) )
+		static if( IsMutable!( typeof( Type.tupleof[ iIndex ] ) ) && !HasUDA!( Type.tupleof[ iIndex ], BindNoSerialise ) )
 		{
-			objectRoot.object[ Variable.Name ] = serialise( Variable.get( object ) );
+			objectRoot.object[ __traits( identifier, Type.tupleof[ iIndex ] ) ] = serialise( object.tupleof[ iIndex ] );
 		}
 	}
 
@@ -260,16 +258,14 @@ JSONValue serialise( Type )( ref Type object ) if( is( Type == struct ) || is( T
 
 void deserialise( Type )( ref Type target, JSONValue source ) if( is( Type == struct ) || is( Type == union ) || is( Type == class ) || is( Type == interface ) )
 {
-	alias Variables = VariableDescriptors!( Type );
-
-	foreach( Variable; Variables )
+	foreach( iIndex, member; Type.init.tupleof )
 	{
-		static if( !Variable.IsStatic && Variable.IsMutable && !Variable.HasUDA!( BindNoSerialise ) )
+		static if( IsMutable!( typeof( Type.tupleof[ iIndex ] ) ) && !HasUDA!( Type.tupleof[ iIndex ], BindNoSerialise ) )
 		{
-			JSONValue* val = ( Variable.ElementName in source.object );
+			JSONValue* val = ( __traits( identifier, Type.tupleof[ iIndex ] ) in source.object );
 			if( val !is null )
 			{
-				deserialise( Variable.get( target ), *val );
+				deserialise( target.tupleof[ iIndex ], *val );
 			}
 		}
 	}
