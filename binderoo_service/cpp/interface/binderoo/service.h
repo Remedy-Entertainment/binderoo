@@ -135,6 +135,7 @@ namespace binderoo
 		void						setRapidIterationMode( bool bSet );
 		bool						isInRapidIterationMode( ) const;
 		void						compileClients( CompileFinishedCallback callWhenDone );
+		void						compileClientBlocking( MonitoredFolder& thisClient );
 		//--------------------------------------------------------------------
 
 		static BIND_INLINE Service*	getInstance()								{ return spInstance; }

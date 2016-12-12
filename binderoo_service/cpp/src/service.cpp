@@ -406,9 +406,9 @@ namespace binderoo
 		bool						isInRapidIterationMode( ) const;
 		void						compileClients( CompileFinishedCallback callWhenDone );
 
-	private:
 		bool						compileFolder( binderoo::MonitoredFolder& folder, bool bRapidIterationMode );
 
+	private:
 		void						logInfo( const char* pMessage );
 		void						logWarning( const char* pMessage );
 		void						logError( const char* pMessage );
@@ -744,6 +744,12 @@ bool binderoo::Service::isInRapidIterationMode( ) const
 void binderoo::Service::compileClients( CompileFinishedCallback callWhenDone )
 {
 	pImplementation->compileClients( callWhenDone );
+}
+//----------------------------------------------------------------------------
+
+void binderoo::Service::compileClientBlocking( MonitoredFolder& thisClient )
+{
+	pImplementation->compileFolder( thisClient, false );
 }
 //----------------------------------------------------------------------------
 
