@@ -639,13 +639,23 @@ void binderoo::HostImplementation::collectDynamicLibraries()
 
 		if( loadDynamicLibrary( dynamicLib ) )
 		{
-			strNotification += "\" loaded successfully.";
+			strNotification += "\" ";
+			if( bInRapidIterationMode )
+			{
+				strNotification += "(rapid iteration mode) ";
+			}
+			strNotification += "loaded successfully.";
 			logInfo( strNotification.c_str() );
 			vecDynamicLibs.push_back( dynamicLib );
 		}
 		else
 		{
-			strNotification += "\" failed to load. Status: ";
+			strNotification += "\" ";
+			if( bInRapidIterationMode )
+			{
+				strNotification += "(rapid iteration mode) ";
+			}
+			strNotification += "failed to load. Status: ";
 			strNotification += pDynamicLibStatusMessages[ (int)dynamicLib.eStatus ];
 
 			logError( strNotification.c_str() );
