@@ -81,40 +81,4 @@ template RawMemberFunctionPointer( Func ) if( !Func.IsMemberFunction )
 }
 //----------------------------------------------------------------------------
 
-template FunctionStub( Func : FunctionDescriptor!( T, Overload, name ), T, alias Overload, string name ) if( Func.IsMemberFunction )
-{
-	// TODO: BINDRAWIMPORT
-	// TODO: Match up the mangleof better, it should ideally be a mangleof the new generated function.
-
-	enum RawImport = "@BindRawImport( \"" ~ TypeString!( T, false ).CDecl ~ "::" ~ Func.Name ~ "\", \"" ~ FunctionString!( Func ).CSignature ~ "\" )";
-
-	enum FunctionStub = "@NoScriptVisibility " ~ RawImport ~ " private __gshared extern( C++ ) RawMemberFunctionPointer!( Func ) m" ~ Func.FunctionMangle ~ " = null;\n"
-						~ "@BindIgnore " ~ Func.PrivacyLevel ~ " final pragma( inline )" ~ FunctionString!( Func ).DDecl ~ "\n"
-						~ "{\n"
-						~ "  return m" ~ Func.FunctionMangle ~ "( this, " ~ FunctionString!( Func ).ParameterNames ~ " );\n"
-						~ "}\n\n";
-}
-//----------------------------------------------------------------------------
-
-template FunctionStub( Func : FunctionDescriptor!( T, Overload, name ), T, alias Overload, string name ) if( !Func.IsMemberFunction )
-{
-	// TODO: BINDRAWIMPORT
-	// TODO: Match up the mangleof better, it should ideally be a mangleof the new generated function.
-
-	enum RawImport = "@BindRawImport( \"" ~ TypeString!( T, false ).CDecl ~ "::" ~ Func.Name ~ "\", \"" ~ FunctionString!( Func ).CSignature ~ "\" )";
-
-	enum FunctionStub = "@NoScriptVisibility " ~ RawImport ~ " private __gshared extern( C++ ) RawMemberFunctionPointer!( Func ) f" ~ Func.FunctionMangle ~ " = null;\n"
-						~ "@BindIgnore " ~ Func.PrivacyLevel ~ " final pragma( inline )" ~ FunctionString!( Func ).DDecl ~ "\n"
-						~ "{\n"
-						~ "  return f" ~ Func.FunctionMangle ~ "( " ~ FunctionString!( Func ).ParameterNames ~ " );\n"
-						~ "}\n\n";
-}
-//----------------------------------------------------------------------------
-
-mixin template ImportFunctionStub( Func : FunctionDescriptor!( T, Overload, name ), T, alias Overload, string name )
-{
-	mixin( FunctionStub!( Func ) );
-}
-//----------------------------------------------------------------------------
-
 //============================================================================
