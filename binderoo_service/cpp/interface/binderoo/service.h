@@ -68,9 +68,11 @@ namespace binderoo
 	typedef fastdelegate::FastDelegate0< void > ThreadOSUpdateFunction;
 	typedef fastdelegate::FastDelegate1< ThreadOSUpdateFunction, int32_t >	ThreadRunFunction;
 
-	typedef void*(* ThreadCreateFunction )( ThreadRunFunction );
-	typedef void(* ThreadSleepFunction )( size_t );
-	typedef void(* ThreadDestroyFunction )( void* );
+	typedef void*(* ThreadCreateFunction )( ThreadRunFunction threadEntryPoint );
+	typedef void(* ThreadSleepFunction )( size_t uMilliszeonds );
+	typedef void(* ThreadWaitOnFunction )( void* pThread );
+	typedef bool(* ThreadIsRunningFunction )( void* pThread );
+	typedef void(* ThreadDestroyFunction )( void* pThread );
 
 	typedef void(* LogInfoFunction )( const char* );
 	typedef void(* LogWarningFunction )( const char* );
@@ -110,6 +112,8 @@ namespace binderoo
 
 		ThreadCreateFunction				create_thread;
 		ThreadSleepFunction					sleep_thread;
+		ThreadWaitOnFunction				wait_on_thread;
+		ThreadIsRunningFunction				is_thread_running;
 		ThreadDestroyFunction				destroy_thread;
 
 		LogInfoFunction						log_info;

@@ -447,13 +447,7 @@ binderoo::ServiceImplementation::~ServiceImplementation()
 {
 	bHaltExecution = true;
 
-	while( bRunning )
-	{
-		pConfiguration->sleep_thread( 0 );
-	}
-
-	pConfiguration->sleep_thread( 0 );
-
+	pConfiguration->wait_on_thread( pThread );
 	pConfiguration->destroy_thread( pThread );
 }
 //----------------------------------------------------------------------------
