@@ -143,14 +143,12 @@ template VariableDescriptors( T )
 
 			modules ~= moduleName!( T );
 
-			foreach( member; __traits( allMembers, T ) )
+			foreach( iIndex, member; T.init.tupleof )
 			{
-				static if( IsAccessible!( T, member )
-						&& is( typeof( __traits( getMember, T, member ) ) )
-						&& !is( typeof( __traits( getMember, T, member ) ) == void )
-						&& IsUserType!( typeof( __traits( getMember, T, member ) ) ) )
+				alias ThisType = typeof( T.tupleof[ iIndex ] );
+				static if( IsUserType!( ThisType ) )
 				{
-					enum ModuleName = moduleName!( typeof( __traits( getMember, T, member ) ) );
+					enum ModuleName = moduleName!( ThisType );
 					if( !modules.canFind( ModuleName ) )
 					{
 						modules ~= ModuleName;
@@ -171,15 +169,10 @@ template VariableDescriptors( T )
 		{
 			import std.traits;
 
-			foreach( member; __traits( allMembers, T ) )
+			foreach( iIndex, member; T.init.tupleof )
 			{
-				static if( IsAccessible!( T, member )
-						&& is( typeof( __traits( getMember, T, member ) ) )
-						&& !is( typeof( __traits( getMember, T, member ) ) == void )
-						&& IsMemberVariable!( __traits( getMember, T, member ) ) )
-				{
-					strOutputs ~= "VariableDescriptor!( T, typeof( __traits( getMember, " ~ fullyQualifiedName!( T ) ~ ", \"" ~ member ~ "\" ) ), \"" ~ member ~ "\" )";
-				}
+				alias ThisType = typeof( T.tupleof[ iIndex ] );
+				strOutputs ~= "VariableDescriptor!( T, " ~ ThisType.stringof ~ ", \"" ~ __traits( identifier, T.tupleof[ iIndex ] ) ~ "\" )";
 			}
 		}
 
