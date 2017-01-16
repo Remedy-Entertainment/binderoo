@@ -49,8 +49,25 @@ namespace binderoo
 
 	struct Compiler
 	{
+		Compiler()
+			: eType( CompilerType::Unknown ) { }
+
+		union PlatformConfig
+		{
+			PlatformConfig() { }
+
+			struct WindowsSpecific
+			{
+				WindowsSpecific() { }
+
+				DString							strVisualStudioInstallDir;
+				DString							strVisualStudioVersion;
+				DString							strWindowsSdkDir;
+			} windows;
+		};
+
 		DString								strCompilerLocation;
-		DString								strLinkerLocation;
+		PlatformConfig						platformConfig;
 		CompilerType						eType;
 	};
 

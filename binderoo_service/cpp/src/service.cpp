@@ -349,11 +349,45 @@ namespace binderoo
 
 			Containers< AllocatorSpace::Service >::StringVector vecEnvironmentVariables;
 
-			vecEnvironmentVariables.push_back( Containers< AllocatorSpace::Service >::InternalString( "VSINSTALLDIR=C:\\Program Files (x86)\\Microsoft Visual Studio 11.0" ) );
-			vecEnvironmentVariables.push_back( Containers< AllocatorSpace::Service >::InternalString( "VCINSTALLDIR=C:\\Program Files (x86)\\Microsoft Visual Studio 11.0\\VC" ) );
-			vecEnvironmentVariables.push_back( Containers< AllocatorSpace::Service >::InternalString( "LINKCMD64=C:\\Program Files (x86)\\Microsoft Visual Studio 11.0\\VC\\bin\\amd64\\link.exe" ) );
-			vecEnvironmentVariables.push_back( Containers< AllocatorSpace::Service >::InternalString( "WindowsSdkDir=C:\\Program Files (x86)\\Windows Kits\\8.1" ) );
-			vecEnvironmentVariables.push_back( Containers< AllocatorSpace::Service >::InternalString( "VisualStudioVersion=11.0" ) );
+			{
+				Containers< AllocatorSpace::Service >::InternalString strVSInstallDir( compiler.platformConfig.windows.strVisualStudioInstallDir.data(), compiler.platformConfig.windows.strVisualStudioInstallDir.length() );
+
+				Containers< AllocatorSpace::Service >::InternalString strScratch;
+
+				strScratch = "VSINSTALLDIR=";
+				strScratch += strVSInstallDir;
+				std::replace( strScratch.begin(), strScratch.end(), '/', '\\' );
+				vecEnvironmentVariables.push_back( strScratch );
+
+				strScratch = "VCINSTALLDIR=";
+				strScratch += strVSInstallDir;
+				strScratch += "\\VC";
+				std::replace( strScratch.begin(), strScratch.end(), '/', '\\' );
+				vecEnvironmentVariables.push_back( strScratch );
+
+				strScratch = "LINKCMD64=";
+				strScratch += strVSInstallDir;
+				strScratch += "\\VC\\bin\\amd64\\link.exe";
+				std::replace( strScratch.begin(), strScratch.end(), '/', '\\' );
+				vecEnvironmentVariables.push_back( strScratch );
+
+				strScratch = "WindowsSdkDir=";
+				strScratch += Containers< AllocatorSpace::Service >::InternalString( compiler.platformConfig.windows.strWindowsSdkDir.data(), compiler.platformConfig.windows.strWindowsSdkDir.length() );
+				std::replace( strScratch.begin(), strScratch.end(), '/', '\\' );
+				vecEnvironmentVariables.push_back( strScratch );
+
+				strScratch = "VisualStudioVersion=";
+				strScratch += Containers< AllocatorSpace::Service >::InternalString( compiler.platformConfig.windows.strVisualStudioVersion.data(), compiler.platformConfig.windows.strVisualStudioVersion.length() );
+				std::replace( strScratch.begin(), strScratch.end(), '/', '\\' );
+				vecEnvironmentVariables.push_back( strScratch );
+
+/*				vecEnvironmentVariables.push_back( Containers< AllocatorSpace::Service >::InternalString( "VSINSTALLDIR=C:\\Program Files (x86)\\Microsoft Visual Studio 11.0" ) );
+				vecEnvironmentVariables.push_back( Containers< AllocatorSpace::Service >::InternalString( "VCINSTALLDIR=C:\\Program Files (x86)\\Microsoft Visual Studio 11.0\\VC" ) );
+				vecEnvironmentVariables.push_back( Containers< AllocatorSpace::Service >::InternalString( "LINKCMD64=C:\\Program Files (x86)\\Microsoft Visual Studio 11.0\\VC\\bin\\amd64\\link.exe" ) );
+				vecEnvironmentVariables.push_back( Containers< AllocatorSpace::Service >::InternalString( "WindowsSdkDir=C:\\Program Files (x86)\\Windows Kits\\8.1" ) );
+				vecEnvironmentVariables.push_back( Containers< AllocatorSpace::Service >::InternalString( "VisualStudioVersion=11.0" ) );*/
+
+			}
 
 			Process compileProcess( strCompilerExecutable, strTempRoot, strArguments, vecEnvironmentVariables, true );
 
