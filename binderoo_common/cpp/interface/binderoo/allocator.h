@@ -168,18 +168,18 @@ namespace binderoo
 		//--------------------------------------------------------------------
 
 		BIND_INLINE						Allocator()									{ }
-		BIND_INLINE						Allocator( const Allocator& other )			{ }
-		template< AllocatorSpace Space, typename U, size_t A > 
-		BIND_INLINE						Allocator( const Allocator< Space, typename U, A >& other )	{ }
+		BIND_INLINE						Allocator( const Allocator& /*other*/ )		{ }
+		template< AllocatorSpace Space, typename _otherTy, size_t _otherA > 
+		BIND_INLINE						Allocator( const Allocator< Space, typename _otherTy, _otherA >& /*other*/ )	{ }
 		BIND_INLINE						~Allocator()								{ }
 		//--------------------------------------------------------------------
 
-		template< AllocatorSpace Space, typename U, size_t A > 
-		BIND_INLINE bool				operator==( const Allocator< Space, U, A >& rhs ) const	{ return true; }
+		template< AllocatorSpace Space, typename _otherTy, size_t _otherA > 
+		BIND_INLINE bool				operator==( const Allocator< Space, _otherTy, _otherA >& /*rhs*/ ) const	{ return true; }
 		//--------------------------------------------------------------------
 
-		template< AllocatorSpace Space, typename U, size_t A > 
-		BIND_INLINE bool				operator==( Allocator< Space, U, A >& rhs )				{ return true; }
+		template< AllocatorSpace Space, typename _otherTy, size_t _otherA > 
+		BIND_INLINE bool				operator==( Allocator< Space, _otherTy, _otherA >& /*rhs*/ )				{ return true; }
 		//--------------------------------------------------------------------
 
 		BIND_INLINE pointer				address( reference x ) const				{ return &x; }
@@ -198,7 +198,7 @@ namespace binderoo
 		}
 		//--------------------------------------------------------------------
 
-		BIND_INLINE void				deallocate( pointer pPointer, size_type count )
+		BIND_INLINE void				deallocate( pointer pPointer, size_type /*count*/ )
 		{
 			return free( pPointer );
 		}
@@ -211,25 +211,25 @@ namespace binderoo
 		//--------------------------------------------------------------------
 
 #if BIND_CPPVERSION == BIND_MSVC2012
-		template< typename U, typename Args >
-		BIND_INLINE void				construct( U* pPointer, Args&& args )
+		template< typename _otherA, typename Args >
+		BIND_INLINE void				construct( _otherA* pPointer, Args&& args )
 		{
 			::new( (void*)pPointer ) U( args );
 		}
 		//--------------------------------------------------------------------
 #else // Sane compilers
-		template< typename U, typename ...Args >
-		BIND_INLINE void				construct( U* pPointer, Args&&... args )
+		template< typename _otherTy, typename ...Args >
+		BIND_INLINE void				construct( _otherTy* pPointer, Args&&... args )
 		{
-			::new( (void*)pPointer ) U( std::forward< Args >( args )... );
+			::new( (void*)pPointer ) _otherTy( std::forward< Args >( args )... );
 		}
 		//--------------------------------------------------------------------
 #endif // BIND_CPPVERSION
 
-		template< class U >
-		BIND_INLINE void				destroy( U* pPointer )
+		template< typename _otherTy >
+		BIND_INLINE void				destroy( _otherTy* pPointer )
 		{
-			pPointer->~U();
+			pPointer->_otherTy::~_otherTy();
 		}
 		//--------------------------------------------------------------------
 	};
@@ -260,14 +260,14 @@ namespace binderoo
 		//--------------------------------------------------------------------
 
 		BIND_INLINE						Allocator()									{ }
-		BIND_INLINE						Allocator( const Allocator& other )			{ }
-		template< AllocatorSpace Space, typename U, size_t A > 
-		BIND_INLINE						Allocator( const Allocator< Space, typename U, A >& other )	{ }
+		BIND_INLINE						Allocator( const Allocator& /*other*/ )		{ }
+		template< AllocatorSpace Space, typename _otherTy, size_t _otherA > 
+		BIND_INLINE						Allocator( const Allocator< Space, typename _otherTy, _otherA >& /*other*/ )	{ }
 		BIND_INLINE						~Allocator()								{ }
 		//--------------------------------------------------------------------
 
-		template< AllocatorSpace Space, typename U, size_t A >
-		BIND_INLINE bool				operator==( const Allocator< Space, U, A >& rhs )	{ return true; }
+		template< AllocatorSpace Space, typename _otherTy, size_t _otherA >
+		BIND_INLINE bool				operator==( const Allocator< Space, typename _otherTy, _otherA >& /*rhs*/ )		{ return true; }
 		//--------------------------------------------------------------------
 	};
 }
