@@ -44,13 +44,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 
 #include <Windows.h>
-#pragma warning( push )
-#pragma warning( disable: 4091 )
-#include <DbgHelp.h>
-#pragma warning( pop )
 
-#pragma comment( lib, "dbghelp.lib" )
-#pragma comment( lib, "Rpcrt4.lib" )
+#if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP
+	// Rapid iteration functionality
+	#define BINDEROOHOST_RAPIDITERATION 1
+	// Load library from disk
+	#define BINDEROOHOST_LOADPACKAGEDLIBRARY 0
+	// Multi-byte load library
+	#define BINDEROOHOST_LOADLIBRARYA 1
+#else
+	// Static loading functionality
+	#define BINDEROOHOST_RAPIDITERATION 0
+	// Load library from App Package
+	#define BINDEROOHOST_LOADPACKAGEDLIBRARY 1
+	// Wide char load library
+	#define BINDEROOHOST_LOADLIBRARYA 0
+#endif
+
+#if BINDEROOHOST_RAPIDITERATION
+	#pragma warning( push )
+	#pragma warning( disable: 4091 )
+	#include <DbgHelp.h>
+	#pragma warning( pop )
+	
+	#pragma comment( lib, "dbghelp.lib" )
+	#pragma comment( lib, "Rpcrt4.lib" )
+#endif // BINDEROOHOST_RAPIDITERATION
 //----------------------------------------------------------------------------
 
 binderoo::AllocatorFunc				binderoo::AllocatorFunctions< binderoo::AllocatorSpace::Host >::fAlloc		= nullptr;
@@ -732,6 +751,7 @@ void binderoo::HostImplementation::collectBoundObjects()
 
 bool binderoo::HostImplementation::loadDynamicLibrary( binderoo::HostDynamicLib& lib )
 {
+#if BINDEROOHOST_RAPIDITERATION
 	InternalString strTempPath;
 	DWORD dTempPathLength = GetTempPath( 0, nullptr );
 	strTempPath.resize( dTempPathLength - 1 );
@@ -785,7 +805,20 @@ bool binderoo::HostImplementation::loadDynamicLibrary( binderoo::HostDynamicLib&
 	}
 
 	SetDllDirectory( strTempPath.c_str() );
-	HMODULE hModule = LoadLibrary( lib.strScratchLib.c_str() );
+
+#else // !BINDEROOHOST_RAPIDITERATION
+	lib.strScratchLib = lib.strPath;
+#endif // BINDEROOHOST_RAPIDITERATION
+
+#if BINDEROOHOST_LOADLIBRARYA
+	HMODULE hModule = LoadLibraryA( lib.strScratchLib.c_str() );
+#else // Wide char load library
+	const size_t BufferSize = 1024;
+	wchar_t WideBuffer[ BufferSize ];
+	MultiByteToWideChar( CP_ACP, MB_PRECOMPOSED, lib.strScratchLib.c_str(), -1, WideBuffer, BufferSize );
+
+	HMODULE hModule = LoadLibraryW( WideBuffer );
+#endif // BINDEROOHOST_LOADLIBRARYA
 
 	if( hModule != nullptr )
 	{
@@ -797,7 +830,6 @@ bool binderoo::HostImplementation::loadDynamicLibrary( binderoo::HostDynamicLib&
 		DestroyObjectByNamePtr		destroyObjectByName		= ( DestroyObjectByNamePtr )GetProcAddress( hModule, "destroyObjectByName" );
 		DestroyObjectByHashPtr		destroyObjectByHash		= ( DestroyObjectByHashPtr )GetProcAddress( hModule, "destroyObjectByHash" );
 		GenerateBindingDeclarationsForAllObjectsPtr generateCPPStyleBindingDeclarationsForAllObjects = ( GenerateBindingDeclarationsForAllObjectsPtr )GetProcAddress( hModule, "generateCPPStyleBindingDeclarationsForAllObjects" );
-
 
 		if( importFunctionsFrom && getExportedObjects && getExportedFunctions && createObjectByName && createObjectByHash && destroyObjectByName && destroyObjectByHash && generateCPPStyleBindingDeclarationsForAllObjects )
 		{
@@ -829,6 +861,7 @@ bool binderoo::HostImplementation::loadDynamicLibrary( binderoo::HostDynamicLib&
 
 void binderoo::HostImplementation::unloadDynamicLibrary( binderoo::HostDynamicLib& lib )
 {
+#if BINDEROOHOST_RAPIDITERATION
 	HANDLE hProcess = GetCurrentProcess();
 
 	auto pRelevantFunction = &binderoo::HostImplementation::performUnload;
@@ -838,9 +871,11 @@ void binderoo::HostImplementation::unloadDynamicLibrary( binderoo::HostDynamicLi
 	{
 		SymUnloadModule64( hProcess, dwModuleBase );
 	}
+#endif // BINDEROOHOST_RAPIDITERATION
 
 	FreeLibrary( lib.hModule );
 
+#if BINDEROOHOST_RAPIDITERATION
 	InternalString strErrorMessage = "Failed to delete ";
 	if( !DeleteFile( lib.strScratchSymbols.c_str() ) )
 	{
@@ -854,6 +889,7 @@ void binderoo::HostImplementation::unloadDynamicLibrary( binderoo::HostDynamicLi
 	{
 		logWarning( (strErrorMessage + lib.strScratchSymbols ).c_str() );
 	}
+#endif // BINDEROOHOST_RAPIDITERATION
 
 	lib.eStatus = DynamicLibStatus::Unloaded;
 }
