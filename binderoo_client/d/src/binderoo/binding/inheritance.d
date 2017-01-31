@@ -165,6 +165,9 @@ string GenerateImports( ThisType, BaseType )()
 			string[] pointers;
 			string[] identifiers;
 
+			enum IncludeVersions = HasUDA!( ThisType, BindVersion ) ? GetUDA!( ThisType, BindVersion ).strVersions.stringof : "[ ]";
+			enum ExcludeVersions = HasUDA!( ThisType, BindExcludeVersion ) ? GetUDA!( ThisType, BindExcludeVersion ).strVersions.stringof : "[ ]";
+
 			enum OwnerIsAbstract = HasUDA!( ThisType, BindAbstract ) ? "true" : "false";
 
 			int iIndex = 0;
@@ -211,7 +214,7 @@ string GenerateImports( ThisType, BaseType )()
 
 							static if( OverrideFound.length == 0 )
 							{
-								string UDAs = "\t\t@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( CPPNameType, false ).CDecl ~ "::" ~ FunctionCPPName ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", " ~ FunctionKind ~ ", " ~ orderInTable ~ ", " ~ strIsConst ~ ", " ~ OwnerIsAbstract ~ ", " ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
+								string UDAs = "\t\t@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( CPPNameType, false ).CDecl ~ "::" ~ FunctionCPPName ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", " ~ IncludeVersions ~ ", " ~ ExcludeVersions ~ ", " ~ FunctionKind ~ ", " ~ orderInTable ~ ", " ~ strIsConst ~ ", " ~ OwnerIsAbstract ~ ", " ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
 								pointers ~= UDAs ~ "\n\t\tRawMemberFunctionPointer!( FunctionDescriptor!(" ~ fullyQualifiedName!( Function.ObjectType ) ~ ", \"" ~ Function.Name ~ "\", " ~ to!string( Function.OverloadIndex ) ~ " )" ~ ", " ~ ThisType.stringof ~ " ) " ~ identifier ~ ";";
 							}
 							else
@@ -342,6 +345,9 @@ string GenerateImports( ThisType, BaseType )()
 			string[] modules;
 			string[] pointers;
 
+			enum IncludeVersions = HasUDA!( ThisType, BindVersion ) ? GetUDA!( ThisType, BindVersion ).strVersions.stringof : "[ ]";
+			enum ExcludeVersions = HasUDA!( ThisType, BindExcludeVersion ) ? GetUDA!( ThisType, BindExcludeVersion ).strVersions.stringof : "[ ]";
+
 			enum OwnerIsAbstract = HasUDA!( ThisType, BindAbstract ) ? "true" : "false";
 
 			int iIndex = 0;
@@ -368,7 +374,7 @@ string GenerateImports( ThisType, BaseType )()
 							string orderInTable = to!string( iIndex++ );
 							string identifier = "function" ~ orderInTable;
 
-							string UDAs = "\t\t@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( CPPNameType, false ).CDecl ~ "::" ~ Function.Name ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", " ~ FunctionKind ~ ", " ~ orderInTable ~ ", " ~ IsConst ~ ", " ~ OwnerIsAbstract ~ ", "  ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
+							string UDAs = "\t\t@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( CPPNameType, false ).CDecl ~ "::" ~ Function.Name ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", " ~ IncludeVersions ~ ", " ~ ExcludeVersions ~ ", " ~ FunctionKind ~ ", " ~ orderInTable ~ ", " ~ IsConst ~ ", " ~ OwnerIsAbstract ~ ", "  ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
 							pointers ~= UDAs ~ "\n\t\tRawMemberFunctionPointer!( FunctionDescriptor!(" ~ fullyQualifiedName!( Function.ObjectType ) ~ ", \"" ~ Function.Name ~ "\", " ~ to!string( Function.OverloadIndex ) ~ " )" ~ ", " ~ ThisType.stringof ~ " ) " ~ identifier ~ ";";
 						}
 						else static if( Function.HasUDA!( BindConstructor ) )
@@ -379,7 +385,7 @@ string GenerateImports( ThisType, BaseType )()
 							string orderInTable = to!string( iIndex++ );
 							string identifier = "function" ~ orderInTable;
 
-							string UDAs = "\t\t@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( CPPNameType, false ).CDecl ~ "::" ~ TypeString!( CPPNameType, false ).UnqualifiedCDecl ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", " ~ FunctionKind ~ ", " ~ orderInTable ~ ", false, " ~ OwnerIsAbstract ~ ", "  ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
+							string UDAs = "\t\t@NoScriptVisibility @BindRawImport( \"" ~ TypeString!( CPPNameType, false ).CDecl ~ "::" ~ TypeString!( CPPNameType, false ).UnqualifiedCDecl ~ "\", \"" ~ FunctionString!( Function ).CSignature ~ "\", " ~ IncludeVersions ~ ", " ~ ExcludeVersions ~ ", " ~ FunctionKind ~ ", " ~ orderInTable ~ ", false, " ~ OwnerIsAbstract ~ ", "  ~ to!string( FunctionDetails.iIntroducedVersion ) ~ ", " ~ to!string( FunctionDetails.iMaxVersion ) ~ " )";
 							pointers ~= UDAs ~ "\n\t\tRawMemberFunctionPointer!( FunctionDescriptor!(" ~ fullyQualifiedName!( Function.ObjectType ) ~ ", \"" ~ Function.Name ~ "\", " ~ to!string( Function.OverloadIndex ) ~ " )" ~ ", " ~ ThisType.stringof ~ " ) " ~ identifier ~ ";";
 						}
 					}

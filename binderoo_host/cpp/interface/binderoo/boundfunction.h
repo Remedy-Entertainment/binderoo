@@ -98,6 +98,8 @@ namespace binderoo
 		DString					strFunctionSignature;
 		DString					strOwningClass;
 		DString					strRequiredInclude;
+		Slice< DString >		strIncludeVersions;
+		Slice< DString >		strExcludeVersions;
 		Hashes					functionHashes;
 		void*					pFunction;
 		int						iMinimumVersion;
