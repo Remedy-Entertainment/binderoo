@@ -276,6 +276,8 @@ mixin template BindModuleImplementation( int iCurrentVersion = 0, AdditionalStat
 													, DString( ImportData.strCSignature )
 													, DString( CTypeData.name )
 													, DString( CTypeData.header )
+													, ImportData.strIncludeVersions
+													, ImportData.strExcludeVersions
 													, BoundFunction.Hashes( ImportData.uNameHash, ImportData.uSignatureHash )
 													, mixin( "cast(void*) &" ~ fullyQualifiedName!( Type ) ~ "." ~ TableStaticMember ~ "." ~ tableMember )
 													, ImportData.iIntroducedVersion
@@ -352,6 +354,8 @@ mixin template BindModuleImplementation( int iCurrentVersion = 0, AdditionalStat
 														, DString( Signature )
 														, DString( "" )
 														, DString( "" )
+														, []
+														, []
 														, BoundFunction.Hashes( fnv1a_64( FullName ), fnv1a_64( Signature ) )
 														, mixin( "&" ~ fullyQualifiedName!( Symbol ) )
 														, ExportData.iIntroducedVersion
@@ -603,7 +607,15 @@ public string generateCPPStyleBindingDeclarationsForAllObjects( string strVersio
 		functions ~= currFunctions[ 0 ];
 	}
 
-	import std.algorithm : sort;
+	import std.algorithm : sort, filter, map, canFind;
+	import std.array : array;
+
+	if( strVersion.length > 0 )
+	{
+		functions = functions.filter!( a => ( a.strIncludeVersions.Length == 0 || a.strIncludeVersions.toSlice.map!( a => a.toSlice ).array.canFind( strVersion ) )
+											&& ( a.strExcludeVersions.Length == 0 || !a.strExcludeVersions.toSlice.map!( a => a.toSlice ).array.canFind( strVersion ) ) )
+					.array;
+	}
 
 	functions.sort!( ( a, b ) => a.iOrderInTable < b.iOrderInTable )();
 

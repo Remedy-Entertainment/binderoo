@@ -50,6 +50,8 @@ struct BindRawImport
 
 	string			strCName;
 	string			strCSignature;
+	string[]		strIncludeVersions;
+	string[]		strExcludeVersions;
 	FunctionKind	eKind;
 	bool			bIsConst;
 	bool			bOwnerIsAbstract;
@@ -62,12 +64,14 @@ struct BindRawImport
 	@disable this();
 	@disable this( string name );
 
-	this( string name, string signature, FunctionKind kind, int orderInTable, bool isConst, bool ownerIsAbstract, int introducedVersion = -1, int maxVersion = -1 )
+	this( string name, string signature, string[] includeVersions, string[] excludeVersions, FunctionKind kind, int orderInTable, bool isConst, bool ownerIsAbstract, int introducedVersion = -1, int maxVersion = -1 )
 	{
 		import binderoo.hash;
 
 		strCName						= name;
 		strCSignature					= signature;
+		strIncludeVersions				= includeVersions;
+		strExcludeVersions				= excludeVersions;
 		eKind							= kind;
 		bOwnerIsAbstract				= ownerIsAbstract;
 		bIsConst						= isConst;
@@ -101,6 +105,34 @@ struct BindDisallow
 // TODO: Add more restrictions for instantiation etc
 struct BindAbstract
 {
+}
+//----------------------------------------------------------------------------
+
+// Marking your object with BindVersion is used for narrowing down bound types
+// under certain search circumstances. Not using a BindVersion means it is
+// always available. If you don't construct with an array, the constructor
+// acceps a variable amount of string arguments and converts to an array
+// automagically.
+struct BindVersion
+{
+	string[]	strVersions;
+
+	this( string[] versions... )
+	{
+		strVersions = versions;
+	}
+}
+//----------------------------------------------------------------------------
+
+// Conversely, you can exclude from specific versions with BindExcludeVersion.
+struct BindExcludeVersion
+{
+	string[]	strVersions;
+
+	this( string[] versions... )
+	{
+		strVersions = versions;
+	}
 }
 //----------------------------------------------------------------------------
 

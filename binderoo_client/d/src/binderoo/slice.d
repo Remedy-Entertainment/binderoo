@@ -46,6 +46,7 @@ struct Slice( Type )
 	final size_t			opDollar()											{ return uLength; }
 
 	final Type[]			opCast( T : Type[] )()								{ return pData[ 0 .. uLength ]; }
+	final Type[]			toSlice()											{ return pData[ 0 .. uLength ]; }
 
 	this( Type[] from )
 	{
