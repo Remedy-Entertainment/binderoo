@@ -276,8 +276,8 @@ mixin template BindModuleImplementation( int iCurrentVersion = 0, AdditionalStat
 													, DString( ImportData.strCSignature )
 													, DString( CTypeData.name )
 													, DString( CTypeData.header )
-													, ImportData.strIncludeVersions
-													, ImportData.strExcludeVersions
+													, ImportData.strIncludeVersions.toSliceRecursive
+													, ImportData.strExcludeVersions.toSliceRecursive
 													, BoundFunction.Hashes( ImportData.uNameHash, ImportData.uSignatureHash )
 													, mixin( "cast(void*) &" ~ fullyQualifiedName!( Type ) ~ "." ~ TableStaticMember ~ "." ~ tableMember )
 													, ImportData.iIntroducedVersion
@@ -354,8 +354,8 @@ mixin template BindModuleImplementation( int iCurrentVersion = 0, AdditionalStat
 														, DString( Signature )
 														, DString( "" )
 														, DString( "" )
-														, []
-														, []
+														, Slice!DString.init
+														, Slice!DString.init
 														, BoundFunction.Hashes( fnv1a_64( FullName ), fnv1a_64( Signature ) )
 														, mixin( "&" ~ fullyQualifiedName!( Symbol ) )
 														, ExportData.iIntroducedVersion

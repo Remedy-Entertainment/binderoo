@@ -60,4 +60,24 @@ struct Slice( Type )
 alias DString = Slice!( immutable( char ) );
 //----------------------------------------------------------------------------
 
+auto toSliceRecursive( A : T[], T )( A array )
+{
+	static if( is( T : ST[], ST ) )
+	{
+		Slice!( ST )[] output;
+
+		foreach( curr; array )
+		{
+			output ~= curr.toSliceRecursive;
+		}
+
+		return Slice!( Slice!( ST ) )( output );
+	}
+	else
+	{
+		return Slice!( T )( array );
+	}
+}
+//----------------------------------------------------------------------------
+
 //============================================================================

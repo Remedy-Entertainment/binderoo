@@ -165,8 +165,23 @@ string GenerateImports( ThisType, BaseType )()
 			string[] pointers;
 			string[] identifiers;
 
-			enum IncludeVersions = HasUDA!( ThisType, BindVersion ) ? GetUDA!( ThisType, BindVersion ).strVersions.stringof : "[ ]";
-			enum ExcludeVersions = HasUDA!( ThisType, BindExcludeVersion ) ? GetUDA!( ThisType, BindExcludeVersion ).strVersions.stringof : "[ ]";
+			static if( HasUDA!( ThisType, BindVersion ) )
+			{
+				enum IncludeVersions = GetUDA!( ThisType, BindVersion ).strVersions.stringof;
+			}
+			else
+			{
+				enum IncludeVersions = "[ ]";
+			}
+
+			static if( HasUDA!( ThisType, BindExcludeVersion ) )
+			{
+				enum ExcludeVersions = GetUDA!( ThisType, BindExcludeVersion ).strVersions.stringof;
+			}
+			else
+			{
+				enum ExcludeVersions = "[ ]";
+			}
 
 			enum OwnerIsAbstract = HasUDA!( ThisType, BindAbstract ) ? "true" : "false";
 
@@ -345,8 +360,23 @@ string GenerateImports( ThisType, BaseType )()
 			string[] modules;
 			string[] pointers;
 
-			enum IncludeVersions = HasUDA!( ThisType, BindVersion ) ? GetUDA!( ThisType, BindVersion ).strVersions.stringof : "[ ]";
-			enum ExcludeVersions = HasUDA!( ThisType, BindExcludeVersion ) ? GetUDA!( ThisType, BindExcludeVersion ).strVersions.stringof : "[ ]";
+			static if( HasUDA!( ThisType, BindVersion ) )
+			{
+				enum IncludeVersions = GetUDA!( ThisType, BindVersion ).strVersions.stringof;
+			}
+			else
+			{
+				enum IncludeVersions = "[ ]";
+			}
+
+			static if( HasUDA!( ThisType, BindExcludeVersion ) )
+			{
+				enum ExcludeVersions = GetUDA!( ThisType, BindExcludeVersion ).strVersions.stringof;
+			}
+			else
+			{
+				enum ExcludeVersions = "[ ]";
+			}
 
 			enum OwnerIsAbstract = HasUDA!( ThisType, BindAbstract ) ? "true" : "false";
 
