@@ -32,6 +32,9 @@ module binderoo.math.angle;
 
 struct Degrees
 {
+	enum max = Degrees( 180.0f );
+	enum min = Degrees( -180.0f );
+
 	package this( float fSomeFloatValue )
 	{
 		m_data = fSomeFloatValue;
@@ -62,6 +65,34 @@ struct Degrees
 	}
 	//------------------------------------------------------------------------
 
+	Degrees opBinary( string s )( float rhs ) if( s == "*" || s == "/" )
+	{
+		mixin( "return Degrees( m_data " ~ s ~ " rhs );" );
+	}
+	//------------------------------------------------------------------------
+
+	string toString()
+	{
+		import std.conv : to;
+		return to!string( m_data ) ~ "deg";
+	}
+	//------------------------------------------------------------------------
+
+	final this( string val )
+	{
+		import std.string : endsWith;
+		import std.conv : to;
+		if( val.endsWith( "deg" ) )
+		{
+			m_data = to!float( val[ 0 .. $ - 3 ] );
+		}
+		else if( val.endsWith( "rad" ) )
+		{
+			m_data = to!float( val[ 0 .. $ - 3 ] ).deg.m_data;
+		}
+	}
+	//------------------------------------------------------------------------
+
 	float	m_data = 0.0f;
 	alias	m_data this;
 }
@@ -69,6 +100,9 @@ struct Degrees
 
 struct Radians
 {
+	enum max = Radians( 3.1415926f );
+	enum min = Radians( -3.14159260f );
+
 	package this( float fSomeFloatValue )
 	{
 		m_data = fSomeFloatValue;
@@ -96,6 +130,34 @@ struct Radians
 	Radians opUnary( string s )() if( s == "-" )
 	{
 		return Radians( -m_data );
+	}
+	//------------------------------------------------------------------------
+
+	Radians opBinary( string s )( float rhs ) if( s == "*" || s == "/" )
+	{
+		mixin( "return Radians( m_data " ~ s ~ " rhs );" );
+	}
+	//------------------------------------------------------------------------
+
+	final string toString()
+	{
+		import std.conv : to;
+		return to!string( m_data ) ~ "rad";
+	}
+	//------------------------------------------------------------------------
+
+	final this( string val )
+	{
+		import std.string : endsWith;
+		import std.conv : to;
+		if( val.endsWith( "rad" ) )
+		{
+			m_data = to!float( val[ 0 .. $ - 3 ] );
+		}
+		else if( val.endsWith( "deg" ) )
+		{
+			m_data = to!float( val[ 0 .. $ - 3 ] ).rad.m_data;
+		}
 	}
 	//------------------------------------------------------------------------
 
