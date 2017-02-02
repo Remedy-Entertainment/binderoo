@@ -419,9 +419,6 @@
     <File path="..\..\src\binderoo\binding\inheritance.d" />
     <File path="..\..\src\binderoo\binding\serialise.d" />
    </Folder>
-   <Folder name="util">
-    <File path="..\..\src\binderoo\util\structofarrays.d" />
-   </Folder>
    <Folder name="math">
     <File path="..\..\src\binderoo\math\angle.d" />
     <File path="..\..\src\binderoo\math\constants.d" />
