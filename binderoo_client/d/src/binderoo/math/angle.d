@@ -32,6 +32,9 @@ module binderoo.math.angle;
 
 struct Degrees
 {
+	enum max = Degrees( 180.0f );
+	enum min = Degrees( -180.0f );
+
 	package this( float fSomeFloatValue )
 	{
 		m_data = fSomeFloatValue;
@@ -62,6 +65,33 @@ struct Degrees
 	}
 	//------------------------------------------------------------------------
 
+	Degrees opBinary( string s )( float rhs ) if( s == "*" || s == "/" )
+	{
+		mixin( "return Degrees( m_data " ~ s ~ " rhs );" );
+	}
+	//------------------------------------------------------------------------
+
+	string toString()
+	{
+		return floatToStringSimple( m_data ) ~ ".deg";
+	}
+	//------------------------------------------------------------------------
+
+	final this( string val )
+	{
+		import std.string : endsWith;
+		import std.conv : to;
+		if( val.endsWith( ".deg" ) )
+		{
+			m_data = to!float( val[ 0 .. $ - 4 ] );
+		}
+		else if( val.endsWith( ".rad" ) )
+		{
+			m_data = to!float( val[ 0 .. $ - 4 ] ).deg.m_data;
+		}
+	}
+	//------------------------------------------------------------------------
+
 	float	m_data = 0.0f;
 	alias	m_data this;
 }
@@ -69,6 +99,9 @@ struct Degrees
 
 struct Radians
 {
+	enum max = Radians( 3.1415926f );
+	enum min = Radians( -3.14159260f );
+
 	package this( float fSomeFloatValue )
 	{
 		m_data = fSomeFloatValue;
@@ -96,6 +129,33 @@ struct Radians
 	Radians opUnary( string s )() if( s == "-" )
 	{
 		return Radians( -m_data );
+	}
+	//------------------------------------------------------------------------
+
+	Radians opBinary( string s )( float rhs ) if( s == "*" || s == "/" )
+	{
+		mixin( "return Radians( m_data " ~ s ~ " rhs );" );
+	}
+	//------------------------------------------------------------------------
+
+	final string toString()
+	{
+		return floatToStringSimple( m_data ) ~ ".rad";
+	}
+	//------------------------------------------------------------------------
+
+	final this( string val )
+	{
+		import std.string : endsWith;
+		import std.conv : to;
+		if( val.endsWith( ".rad" ) )
+		{
+			m_data = to!float( val[ 0 .. $ - 4 ] );
+		}
+		else if( val.endsWith( ".deg" ) )
+		{
+			m_data = to!float( val[ 0 .. $ - 4 ] ).rad.m_data;
+		}
 	}
 	//------------------------------------------------------------------------
 
@@ -173,6 +233,71 @@ pragma( inline ) auto rad( Radians radians )
 pragma( inline ) auto rad( Degrees degrees )
 {
 	return ToRadians( degrees );
+}
+//----------------------------------------------------------------------------
+//----------------------------------------------------------------------------
+
+// Don't go any further if you value your sanity.
+//----------------------------------------------------------------------------
+//----------------------------------------------------------------------------
+
+// No. Seriously.
+//----------------------------------------------------------------------------
+//----------------------------------------------------------------------------
+
+// ...alright then.
+//----------------------------------------------------------------------------
+//----------------------------------------------------------------------------
+
+// Works at CTFE. Exactly what we want.
+string floatToStringSimple( float val )
+{
+	string output;
+
+	int major = cast( int )val;
+	int minor = cast( int )( ( val % 1 ) * 10000000.0f );
+
+	if( major < 0 )
+	{
+		output ~= '-';
+		major = -major;
+		minor = -minor;
+	}
+
+	if( major == 0 )
+	{
+		output ~= '0';
+	}
+
+	string working = "";
+	while( major > 0 )
+	{
+		working ~= cast( char )( major % 10 ) + '0';
+		major /= 10;
+	}
+
+	foreach_reverse( c; working ) output ~= c;
+
+	if( minor > 0 )
+	{
+		output ~= '.';
+
+		working = "";
+		while( minor > 0 )
+		{
+			working ~= cast( char )( minor % 10 ) + '0';
+			minor /= 10;
+		}
+
+		while( working[ 0 ] == '0' )
+		{
+			working = working[ 1 .. $ ];
+		}
+
+		foreach_reverse( c; working ) output ~= c;
+	}
+	
+	return output;
 }
 //----------------------------------------------------------------------------
 
