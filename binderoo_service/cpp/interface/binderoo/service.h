@@ -169,6 +169,47 @@ namespace binderoo
 		static Service*				spInstance;
 	};
 	//------------------------------------------------------------------------
+
+	struct BIND_DLL DisableServiceRapidIteration
+	{
+		enum : int32_t
+		{
+			NoService = -1,
+			WasDisabled = 0,
+			WasEnabled = 1,
+		};
+		//--------------------------------------------------------------------
+
+	public:
+		BIND_INLINE DisableServiceRapidIteration()
+			: eDisabledStatus( NoService )
+		{
+			binderoo::Service* pService = binderoo::Service::getInstance();
+			if( pService )
+			{
+				eDisabledStatus = pService->isInRapidIterationMode() ? WasEnabled : WasDisabled;
+				pService->setRapidIterationMode( false );
+			}
+		}
+		//--------------------------------------------------------------------
+
+		BIND_INLINE ~DisableServiceRapidIteration()
+		{
+			if( eDisabledStatus != NoService )
+			{
+				binderoo::Service* pService = binderoo::Service::getInstance();
+				if( pService )
+				{
+					pService->setRapidIterationMode( eDisabledStatus == WasEnabled );
+				}
+			}
+		}
+		//--------------------------------------------------------------------
+
+	private:
+		int32_t						eDisabledStatus;
+	};
+	//------------------------------------------------------------------------
 }
 //----------------------------------------------------------------------------
 

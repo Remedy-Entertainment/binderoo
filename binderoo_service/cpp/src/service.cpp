@@ -503,48 +503,59 @@ int32_t binderoo::ServiceImplementation::threadFunction( binderoo::ThreadOSUpdat
 	logInfo( "Binderoo Service: Started" );
 
 	bool bWasInRapidMode = false;
+	bool bPerformedInitialCompile = false;
 
 	while( !bHaltExecution )
 	{
+		threadOSUpdate();
+
 		changedFolders.clear();
 
+		CompileFinishedCallback compileFinished;
 		bool bNowInRapidMode = bInRapidIterationMode.load();
+		bool bCompileForRapidIteration = false;
+
 		if( !bWasInRapidMode && bNowInRapidMode )
 		{
-			logInfo( "Binderoo Service Rapid Iteration: Started, performing initial compile." );
-
-			// Kick off a recompile to begin with since we don't track state anywhere
-			bool bInitialCompileSuccessful = true;
-			for( auto& folder : pConfiguration->folders )
+			if( !bPerformedInitialCompile )
 			{
-				bInitialCompileSuccessful &= compileFolder( folder, true );
-			}
+				// Flush any file changes already detected
+				pWatcher->detectFileChanges();
 
-			if( bInitialCompileSuccessful )
-			{
-				logInfo( "Binderoo Service Rapid Iteration: Initial compile was successful. Reload is being triggered." );
-				reloadEvent.signal();
+				logInfo( "Binderoo Service Rapid Iteration: Started, performing initial compile." );
+
+				// Kick off a recompile to begin with since we don't track state anywhere
+				bool bInitialCompileSuccessful = true;
+				for( auto& folder : pConfiguration->folders )
+				{
+					bInitialCompileSuccessful &= compileFolder( folder, true );
+				}
+
+				if( bInitialCompileSuccessful )
+				{
+					logInfo( "Binderoo Service Rapid Iteration: Initial compile was successful. Reload is being triggered." );
+					reloadEvent.signal();
+				}
+				else
+				{
+					logError( "Binderoo Service Rapid Iteration: Errors were encountered in initial compile. Reload is NOT being triggered." );
+				}
+
+				bPerformedInitialCompile = true;
 			}
 			else
 			{
-				logError( "Binderoo Service Rapid Iteration: Errors were encountered in initial compile. Reload is NOT being triggered." );
+				logInfo( "Binderoo Service Rapid Iteration: Started." );
 			}
 		}
 		else if( bWasInRapidMode && !bNowInRapidMode )
 		{
 			logInfo( "Binderoo Service Rapid Iteration: Stopped." );
 		}
-		bWasInRapidMode = bNowInRapidMode;
-
-		threadOSUpdate();
-
-		::SleepEx( 1000, true );
-
-		CompileFinishedCallback compileFinished;
-		bool bCompileRapidIteration = bInRapidIterationMode.load();
-
-		if( bCompileRapidIteration && pWatcher->detectFileChanges() )
+		else if( bNowInRapidMode && pWatcher->detectFileChanges() )
 		{
+			bCompileForRapidIteration = true;
+
 			const ChangedFilesVector& changedFiles = pWatcher->getChangedFiles();
 
 			bool bImportPathsChanged = false;
@@ -573,7 +584,6 @@ int32_t binderoo::ServiceImplementation::threadFunction( binderoo::ThreadOSUpdat
 		}
 		else if( iNumCompilesRequested.load() > 0 )
 		{
-			bCompileRapidIteration = false;
 			compileFinished = compileFinishedCallback;
 			--iNumCompilesRequested;
 			logInfo( "Binderoo Service: Recompile requested." );
@@ -591,7 +601,7 @@ int32_t binderoo::ServiceImplementation::threadFunction( binderoo::ThreadOSUpdat
 			// Recompile only changed clients
 			for( auto& changedFolder : changedFolders )
 			{
-				bCompiledAll &= compileFolder( *changedFolder, bCompileRapidIteration );
+				bCompiledAll &= compileFolder( *changedFolder, bCompileForRapidIteration );
 			}
 
 			if( bCompiledAll )
@@ -609,6 +619,11 @@ int32_t binderoo::ServiceImplementation::threadFunction( binderoo::ThreadOSUpdat
 				compileFinished( bCompiledAll );
 			}
 		}
+
+		bWasInRapidMode = bNowInRapidMode;
+
+		::SleepEx( 1000, true );
+
 	}
 
 	bRunning = false;

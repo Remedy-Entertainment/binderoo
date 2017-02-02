@@ -1034,8 +1034,9 @@ const binderoo::HostBoundObject* binderoo::HostImplementation::getImportedObject
 
 const char* binderoo::HostImplementation::generateCPPStyleBindingDeclarationsForAllObjects( const char* pVersions )
 {
-	InternalStringVector vecVersions;
 	InternalStringVector vecAllDeclarations;
+
+/*	InternalStringVector vecVersions;
 
 	const char* pVersionCurr = pVersions;
 	const char* pVersionStart = pVersions;
@@ -1062,7 +1063,7 @@ const char* binderoo::HostImplementation::generateCPPStyleBindingDeclarationsFor
 			}
 			pVersionCurr = nullptr;
 		}
-	}
+	}*/
 
 	const char* const pSeparator = "\n\n";
 	const size_t uSeparatorLength = 2;
@@ -1072,7 +1073,7 @@ const char* binderoo::HostImplementation::generateCPPStyleBindingDeclarationsFor
 
 	for( auto& lib : vecDynamicLibs )
 	{
-		const char* pDeclarations = lib.generateCPPStyleBindingDeclarationsForAllObjects( configuration.unaligned_alloc, nullptr );
+		const char* pDeclarations = lib.generateCPPStyleBindingDeclarationsForAllObjects( configuration.unaligned_alloc, pVersions );
 
 		InternalString strDeclarations( pDeclarations, strlen( pDeclarations ) );
 		vecAllDeclarations.push_back( strDeclarations );

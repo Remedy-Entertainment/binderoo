@@ -449,6 +449,19 @@ template SupportsAppend( T : U[], U )
 }
 //----------------------------------------------------------------------------
 
+template ZeroValue( T )
+{
+	static if( IsScalar!T )
+	{
+		enum ZeroValue = cast( T )0;
+	}
+	else
+	{
+		alias ZeroValue = T.init;
+	}
+}
+//----------------------------------------------------------------------------
+
 // This one currently fails under some circumstances.
 /+template FullyQualifiedNameInsideModule( T )
 {

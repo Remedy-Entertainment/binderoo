@@ -298,18 +298,23 @@ bool binderoo::FileWatcher::detectFileChanges()
 {
 	vecCurrentChangedFiles.clear();
 
-	for( void* pData : vecFileWatchersHandles )
-	{
-		FileWatcherDataWin32& watcherData = *(FileWatcherDataWin32*)pData;
+	populateChangedFilesList();
 
-		if( watcherData.vecChangedFiles.size() > 0 )
+	if( !vecCurrentChangedFiles.empty() )
+	{
+		size_t uCurrSize;
+
+		// This loop will catch any files that are still being changed in quick succession.
+		do
 		{
-			vecCurrentChangedFiles.insert( vecCurrentChangedFiles.end(), watcherData.vecChangedFiles.begin(), watcherData.vecChangedFiles.end() );
-			watcherData.vecChangedFiles.clear();
-		}
+			uCurrSize = vecCurrentChangedFiles.size();
+			::SleepEx( 100, true );
+		} while( uCurrSize != vecCurrentChangedFiles.size() );
+
+		return true;
 	}
 
-	return !vecCurrentChangedFiles.empty();
+	return false;
 }
 //----------------------------------------------------------------------------
 
@@ -336,6 +341,22 @@ void binderoo::FileWatcher::getAllFiles( const Containers< AllocatorSpace::Servi
 	std::replace( strFixedUpFolder.begin(), strFixedUpFolder.end(), '/', '\\' );
 
 	::getAllFiles( strFixedUpFolder, strExtensions, vecOutput );
+}
+//----------------------------------------------------------------------------
+
+void binderoo::FileWatcher::populateChangedFilesList()
+{
+	for( void* pData : vecFileWatchersHandles )
+	{
+		FileWatcherDataWin32& watcherData = *(FileWatcherDataWin32*)pData;
+
+		if( watcherData.vecChangedFiles.size() > 0 )
+		{
+			vecCurrentChangedFiles.insert( vecCurrentChangedFiles.end(), watcherData.vecChangedFiles.begin(), watcherData.vecChangedFiles.end() );
+			watcherData.vecChangedFiles.clear();
+		}
+	}
+
 }
 //----------------------------------------------------------------------------
 

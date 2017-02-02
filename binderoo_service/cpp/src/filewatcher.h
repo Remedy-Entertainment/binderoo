@@ -65,6 +65,9 @@ namespace binderoo
 		//--------------------------------------------------------------------
 
 	private:
+		void									populateChangedFilesList();
+		//--------------------------------------------------------------------
+
 		Slice< MonitoredFolder >				monitoredFolders;
 		VoidPointerVector						vecFileWatchersHandles;
 
