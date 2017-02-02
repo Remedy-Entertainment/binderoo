@@ -135,7 +135,11 @@ mixin template BindModuleImplementation( int iCurrentVersion = 0, AdditionalStat
 				static if( mixin( "__traits( compiles, " ~ AliasString ~ " ) && IsSomeType!( " ~ AliasString ~ " )" ) )
 				{
 					mixin( "alias Type = " ~ AliasString ~ ";" );
-					mixin( "import " ~ moduleName!( Type ) ~ ";" );
+
+					static if( __traits( compiles, moduleName!( Type ) ) )
+					{
+						mixin( "import " ~ moduleName!( Type ) ~ ";" );
+					}
 
 					static if( IsUserTypeButNotEnum!( Type ) && Alias == Type.stringof )
 					{
