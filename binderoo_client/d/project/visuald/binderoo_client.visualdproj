@@ -430,6 +430,8 @@
     <File path="..\..\src\binderoo\scripting\attributes.d" />
     <File path="..\..\src\binderoo\scripting\scripting.d" />
    </Folder>
+   <File path="..\..\src\binderoo\atomic.d" />
+   <File path="..\..\src\binderoo\bitpacking.d" />
    <File path="..\..\src\binderoo\descriptorsearch.d" />
    <File path="..\..\src\binderoo\functiondescriptor.d" />
    <File path="..\..\src\binderoo\hash.d" />
