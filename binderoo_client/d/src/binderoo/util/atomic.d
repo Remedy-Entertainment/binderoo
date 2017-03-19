@@ -27,7 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 //----------------------------------------------------------------------------
 
-module binderoo.atomic;
+module binderoo.util.atomic;
 //----------------------------------------------------------------------------
 
 // Atomic is directly analagous to std::atomic in the C++ Standard Library and
