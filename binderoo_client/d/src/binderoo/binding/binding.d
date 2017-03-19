@@ -203,6 +203,8 @@ mixin template BindModuleImplementation( int iCurrentVersion = 0, AdditionalStat
 		{
 			final switch( eKind ) with( BindRawImport.FunctionKind )
 			{
+			case Invalid:
+				return BoundFunction.FunctionKind.Undefined;
 			case Static:
 				return BoundFunction.FunctionKind.Static;
 			case Method:
@@ -300,8 +302,8 @@ mixin template BindModuleImplementation( int iCurrentVersion = 0, AdditionalStat
 			{
 				alias Members = TypeTuple!( __traits( allMembers, Type ) );
 
-				imports ~= TableGrabber!( Type, "__vtableData" )();
-				imports ~= TableGrabber!( Type, "__methodtableData" )();
+				imports ~= TableGrabber!( Type, "_vtableData" )();
+				imports ~= TableGrabber!( Type, "_methodtableData" )();
 
 				static if( bRecursive )
 				{
@@ -539,7 +541,7 @@ public string[] generateCPPStyleBindingDeclaration( BoundFunction[] functions )
 				}
 				else
 				{
-					auto strOriginalSig = cast( string )func.strFunctionSignature;
+/+					auto strOriginalSig = cast( string )func.strFunctionSignature;
 					auto foundOpenBrackets = strOriginalSig.indexOf( '(' );
 					auto strReturnType = strOriginalSig[ 0 .. foundOpenBrackets ];
 					auto foundCloseBrackets = strOriginalSig.indexOf( ')' );
@@ -558,7 +560,9 @@ public string[] generateCPPStyleBindingDeclaration( BoundFunction[] functions )
 							strTypeCast ~= " const";
 						}
 						strTypeCast ~= " )";
-					}
+					}+/
+
+					string strTypeCast = "(" ~ cast( string )func.strFunctionSignature ~ ")";
 
 					if( func.eFunctionKind & BoundFunction.FunctionKind.Constructor )
 					{

@@ -38,8 +38,9 @@ struct BindNoSerialise { }
 // Used internally. Avoid using yourself.
 struct BindRawImport
 {
-	enum FunctionKind : char
+	enum FunctionKind : short
 	{
+		Invalid = -1,
 		Static,
 		Method,
 		Virtual,
@@ -52,7 +53,7 @@ struct BindRawImport
 	string			strCSignature;
 	string[]		strIncludeVersions;
 	string[]		strExcludeVersions;
-	FunctionKind	eKind;
+	FunctionKind	eKind = FunctionKind.Invalid;
 	bool			bIsConst;
 	bool			bOwnerIsAbstract;
 	ulong			uNameHash;
@@ -60,9 +61,6 @@ struct BindRawImport
 	int				iOrderInTable			= 0;
 	int				iIntroducedVersion		= -1;
 	int				iMaxVersion				= -1;
-
-	@disable this();
-	@disable this( string name );
 
 	this( string name, string signature, string[] includeVersions, string[] excludeVersions, FunctionKind kind, int orderInTable, bool isConst, bool ownerIsAbstract, int introducedVersion = -1, int maxVersion = -1 )
 	{
@@ -73,13 +71,45 @@ struct BindRawImport
 		strIncludeVersions				= includeVersions;
 		strExcludeVersions				= excludeVersions;
 		eKind							= kind;
-		bOwnerIsAbstract				= ownerIsAbstract;
 		bIsConst						= isConst;
+		bOwnerIsAbstract				= ownerIsAbstract;
 		uNameHash						= fnv1a_64( name );
 		uSignatureHash					= fnv1a_64( signature );
 		iOrderInTable					= orderInTable;
 		iIntroducedVersion				= introducedVersion;
 		iMaxVersion						= maxVersion;
+	}
+
+	this( string name, string signature, string[] includeVersions, string[] excludeVersions, FunctionKind kind, bool isConst, bool ownerIsAbstract, ulong nameHash, ulong signatureHash, int orderInTable, int introducedVersion, int maxVersion )
+	{
+		strCName						= name;
+		strCSignature					= signature;
+		strIncludeVersions				= includeVersions;
+		strExcludeVersions				= excludeVersions;
+		eKind							= kind;
+		bIsConst						= isConst;
+		bOwnerIsAbstract				= ownerIsAbstract;
+		uNameHash						= nameHash;
+		uSignatureHash					= signatureHash;
+		iOrderInTable					= orderInTable;
+		iIntroducedVersion				= introducedVersion;
+		iMaxVersion						= maxVersion;
+	}
+
+	string toUDAString()
+	{
+		import std.conv : to;
+		return "@BindRawImport(\""	~ strCName ~ "\", \"" ~ strCSignature ~ "\", "
+									~ "cast(string[])" ~ strIncludeVersions.to!string ~ ", "
+									~ "cast(string[])" ~ strExcludeVersions.to!string ~ ", "
+									~ "BindRawImport.FunctionKind." ~ eKind.to!string ~ ", "
+									~ bIsConst.to!string ~ ", "
+									~ bOwnerIsAbstract.to!string ~ ", "
+									~ uNameHash.to!string ~ "UL, "
+									~ uSignatureHash.to!string ~ "UL, "
+									~ iOrderInTable.to!string ~ ", "
+									~ iIntroducedVersion.to!string ~ ", "
+									~ iMaxVersion.to!string ~ ")";
 	}
 }
 //----------------------------------------------------------------------------
@@ -165,13 +195,6 @@ struct BindDestructor
 //----------------------------------------------------------------------------
 
 struct BindVirtualDestructor
-{
-	int		iIntroducedVersion		= -1;
-	int		iMaxVersion				= -1;
-}
-//----------------------------------------------------------------------------
-
-struct BindStatic
 {
 	int		iIntroducedVersion		= -1;
 	int		iMaxVersion				= -1;
