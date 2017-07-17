@@ -91,7 +91,7 @@ enum Options : int
 
 void printUsageScreen()
 {
-	printf( "Binderoo Util (C) 2016 Remedy Entertainment Ltd.\n" );
+	printf( "Binderoo Util (C) 2016-2017 Remedy Entertainment Ltd.\n" );
 	printf( "\n" );
 	printf( "Usage: binderoo_util [-g class] [-gA] [-f folder]\n" );
 	printf( "\n" );

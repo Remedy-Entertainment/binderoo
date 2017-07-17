@@ -27,7 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 //----------------------------------------------------------------------------
 
-module binderoo.bitpacking;
+module binderoo.util.bitpacking;
 //----------------------------------------------------------------------------
 
 // BitPack is a simple bit packing object, in a similar way to how C bitfields

@@ -161,13 +161,15 @@ enum CTypeNameOverride( T )				= CTypeNameUndefinedOverride;
 //----------------------------------------------------------------------------
 
 // Default overrides
-enum CTypeNameOverride( T : ushort )	= "unsigned short";
-enum CTypeNameOverride( T : uint )		= "unsigned int";
-enum CTypeNameOverride( T : wchar )		= "wchar_t";
-enum CTypeNameOverride( T : byte )		= "char";
-enum CTypeNameOverride( T : ubyte )		= "unsigned char";
+enum CTypeNameOverride( T : byte )		= "int8_t";
+enum CTypeNameOverride( T : ubyte )		= "uint8_t";
+enum CTypeNameOverride( T : short )		= "int16_t";
+enum CTypeNameOverride( T : ushort )	= "uint16_t";
+enum CTypeNameOverride( T : int )		= "int32_t";
+enum CTypeNameOverride( T : uint )		= "uint32_t";
 enum CTypeNameOverride( T : long )		= "int64_t";
 enum CTypeNameOverride( T : ulong )		= "uint64_t";
+enum CTypeNameOverride( T : wchar )		= "wchar_t";
 enum CTypeNameOverride( T : bool )		= "bool"; // Returns char otherwise when parsing functions? o_O
 //----------------------------------------------------------------------------
 

@@ -299,7 +299,7 @@
   <resfile />
   <exefile>$(OutDir)\$(ProjectName).dll</exefile>
   <useStdLibPath>1</useStdLibPath>
-  <cRuntime>2</cRuntime>
+  <cRuntime>4</cRuntime>
   <privatePhobos>0</privatePhobos>
   <additionalOptions />
   <preBuildCommand />
@@ -403,7 +403,7 @@
   <useStdLibPath>1</useStdLibPath>
   <cRuntime>2</cRuntime>
   <privatePhobos>0</privatePhobos>
-  <additionalOptions />
+  <additionalOptions>-v</additionalOptions>
   <preBuildCommand />
   <postBuildCommand />
   <filesToClean>*.obj;*.cmd;*.build;*.json;*.dep</filesToClean>
@@ -419,6 +419,11 @@
     <File path="..\..\src\binderoo\binding\inheritance.d" />
     <File path="..\..\src\binderoo\binding\serialise.d" />
    </Folder>
+   <Folder name="util">
+    <File path="..\..\src\binderoo\util\atomic.d" />
+    <File path="..\..\src\binderoo\util\bitpacking.d" />
+    <File path="..\..\src\binderoo\util\structofarrays.d" />
+   </Folder>
    <Folder name="math">
     <File path="..\..\src\binderoo\math\angle.d" />
     <File path="..\..\src\binderoo\math\constants.d" />
@@ -430,8 +435,6 @@
     <File path="..\..\src\binderoo\scripting\attributes.d" />
     <File path="..\..\src\binderoo\scripting\scripting.d" />
    </Folder>
-   <File path="..\..\src\binderoo\atomic.d" />
-   <File path="..\..\src\binderoo\bitpacking.d" />
    <File path="..\..\src\binderoo\descriptorsearch.d" />
    <File path="..\..\src\binderoo\functiondescriptor.d" />
    <File path="..\..\src\binderoo\hash.d" />
