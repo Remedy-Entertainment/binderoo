@@ -51,13 +51,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	#define BIND_DLL			__declspec( dllimport )
 #endif // Host mode check
 
+#ifdef _MSC_VER
 #pragma warning( disable: 4251 )
+#endif
 
 #define BIND_C_CALL			__cdecl
 #define BIND_C_NAMING		extern "C"
 
+#ifdef _MSC_VER
 #define BIND_INLINE			__forceinline
 #define BIND_NOINLINE		__declspec( noinline )
+#elif defined (__clang__)
+#define BIND_INLINE			inline __attribute__((always_inline))
+#define BIND_NOINLINE		__attribute__((noinline))
+#endif
+
 #define BIND_ABSTRACT		abstract
 #define BIND_OVERRIDE		override
 
@@ -90,8 +98,8 @@ namespace binderoo
 #define BIND_TYPE_NAME( FullCType, FullDName ) \
 template<> struct binderoo::TypeNames< FullCType > \
 { \
-	static BIND_INLINE const char* getCName() { return #FullCType ## ; } \
-	static BIND_INLINE const char* getDName() { return #FullDName ## ; } \
+	static BIND_INLINE const char* getCName() { return #FullCType; } \
+	static BIND_INLINE const char* getDName() { return #FullDName; } \
 };\
 template<> struct binderoo::TypeNames< FullCType* > \
 { \
@@ -101,7 +109,7 @@ template<> struct binderoo::TypeNames< FullCType* > \
 template<> struct binderoo::TypeNames< FullCType& > \
 { \
 	static BIND_INLINE const char* getCName() { return #FullCType "&"; } \
-	static BIND_INLINE const char* getDName() { return "ref " #FullDName ## ; } \
+	static BIND_INLINE const char* getDName() { return "ref " #FullDName; } \
 };\
 
 BIND_TYPE_NAME( char, char )

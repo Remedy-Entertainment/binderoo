@@ -143,9 +143,12 @@ namespace binderoo
 		}
 		//--------------------------------------------------------------------
 
-		BIND_INLINE _ty* const		operator->()									{ return getInternal(); }
-		BIND_INLINE					operator _ty* const ()						{ return getInternal(); }
-		BIND_INLINE	_ty* const		get()										{ return getInternal(); }
+		BIND_INLINE _ty* const			operator->()								{ return getInternal(); }
+		BIND_INLINE const _ty* const	operator->() const						{ return getInternal(); }
+		BIND_INLINE						operator _ty* const ()					{ return getInternal(); }
+		BIND_INLINE						operator const _ty* const () const		{ return getInternal(); }
+		BIND_INLINE	_ty* const			get()									{ return getInternal(); }
+		BIND_INLINE	const _ty* const	get() const								{ return getInternal(); }
 		//--------------------------------------------------------------------
 
 		BIND_INLINE bool			isInstantiated() const						{ return getInternal() != nullptr; }
@@ -238,18 +241,21 @@ namespace binderoo
 		}
 		//--------------------------------------------------------------------
 
-		BIND_INLINE void			createNewInstance( const char* pClassName = ImportedClass::NameProvider::getDName() )
+		BIND_INLINE void				createNewInstance( const char* pClassName = ImportedClass::NameProvider::getDName() )
 		{
 			unacquire();
 			create( pClassName );
 		}
 		//--------------------------------------------------------------------
 
-		BIND_INLINE bool			isAcquired() const							{ return pRefCountedInstance != nullptr; }
-		BIND_INLINE ptrdiff_t		getRefCount() const							{ return isAcquired() ? pRefCountedInstance->iRefCount : 0; }
-		BIND_INLINE _ty* const		operator->()									{ return isAcquired() ? pRefCountedInstance->get() : nullptr; }
-		BIND_INLINE					operator _ty* const ()						{ return isAcquired() ? pRefCountedInstance->get() : nullptr; }
-		BIND_INLINE	_ty* const		get()										{ return isAcquired() ? pRefCountedInstance->get() : nullptr; }
+		BIND_INLINE bool				isAcquired() const						{ return pRefCountedInstance != nullptr; }
+		BIND_INLINE ptrdiff_t			getRefCount() const						{ return isAcquired() ? pRefCountedInstance->iRefCount : 0; }
+		BIND_INLINE _ty* const			operator->()								{ return isAcquired() ? pRefCountedInstance->get() : nullptr; }
+		BIND_INLINE const _ty* const	operator->() const						{ return isAcquired() ? pRefCountedInstance->get() : nullptr; }
+		BIND_INLINE						operator _ty* const ()					{ return isAcquired() ? pRefCountedInstance->get() : nullptr; }
+		BIND_INLINE						operator const _ty* const () const		{ return isAcquired() ? pRefCountedInstance->get() : nullptr; }
+		BIND_INLINE	_ty* const			get()									{ return isAcquired() ? pRefCountedInstance->get() : nullptr; }
+		BIND_INLINE	const _ty* const	get() const								{ return isAcquired() ? pRefCountedInstance->get() : nullptr; }
 		//--------------------------------------------------------------------
 
 	private:

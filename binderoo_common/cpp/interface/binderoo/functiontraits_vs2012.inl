@@ -187,7 +187,7 @@ namespace functiontraits
 	template< typename _retType >
 	struct Implementation< _retType( * )( ) >
 	{
-		typedef typename _retType							return_type;
+		typedef _retType									return_type;
 		typedef void										object_type;
 		typedef return_type( * signature )( );
 		typedef signature									raw_signature;
@@ -202,7 +202,7 @@ namespace functiontraits
 	template< typename _retType, typename p1 >
 	struct Implementation< _retType( * )( p1 ) >
 	{
-		typedef typename _retType							return_type;
+		typedef _retType									return_type;
 		typedef void										object_type;
 		typedef return_type( * signature )( p1 );
 		typedef signature									raw_signature;
@@ -219,7 +219,7 @@ namespace functiontraits
 	template< typename _retType, typename p1, typename p2 >
 	struct Implementation< _retType( * )( p1, p2 ) >
 	{
-		typedef typename _retType							return_type;
+		typedef _retType									return_type;
 		typedef void										object_type;
 		typedef return_type( * signature )( p1, p2 );
 		typedef signature									raw_signature;
@@ -236,7 +236,7 @@ namespace functiontraits
 	template< typename _retType, typename p1, typename p2, typename p3 >
 	struct Implementation< _retType( * )( p1, p2, p3 ) >
 	{
-		typedef typename _retType							return_type;
+		typedef _retType									return_type;
 		typedef void										object_type;
 		typedef return_type( * signature )( p1, p2, p3 );
 		typedef signature									raw_signature;
@@ -253,7 +253,7 @@ namespace functiontraits
 	template< typename _retType, typename p1, typename p2, typename p3, typename p4 >
 	struct Implementation< _retType( * )( p1, p2, p3, p4 ) >
 	{
-		typedef typename _retType							return_type;
+		typedef _retType									return_type;
 		typedef void										object_type;
 		typedef return_type( * signature )( p1, p2, p3, p4 );
 		typedef signature									raw_signature;
@@ -270,7 +270,7 @@ namespace functiontraits
 	template< typename _retType, typename p1, typename p2, typename p3, typename p4, typename p5 >
 	struct Implementation< _retType( * )( p1, p2, p3, p4, p5 ) >
 	{
-		typedef typename _retType							return_type;
+		typedef _retType									return_type;
 		typedef void										object_type;
 		typedef return_type( * signature )( p1, p2, p3, p4, p5 );
 		typedef signature									raw_signature;
@@ -287,7 +287,7 @@ namespace functiontraits
 	template< typename _retType, typename p1, typename p2, typename p3, typename p4, typename p5, typename p6 >
 	struct Implementation< _retType( * )( p1, p2, p3, p4, p5, p6 ) >
 	{
-		typedef typename _retType							return_type;
+		typedef _retType									return_type;
 		typedef void										object_type;
 		typedef return_type( * signature )( p1, p2, p3, p4, p5, p6 );
 		typedef signature									raw_signature;
@@ -304,7 +304,7 @@ namespace functiontraits
 	template< typename _retType, typename p1, typename p2, typename p3, typename p4, typename p5, typename p6, typename p7 >
 	struct Implementation< _retType( * )( p1, p2, p3, p4, p5, p6, p7 ) >
 	{
-		typedef typename _retType							return_type;
+		typedef _retType									return_type;
 		typedef void										object_type;
 		typedef return_type( * signature )( p1, p2, p3, p4, p5, p6, p7 );
 		typedef signature									raw_signature;
@@ -321,7 +321,7 @@ namespace functiontraits
 	template< typename _retType, typename p1, typename p2, typename p3, typename p4, typename p5, typename p6, typename p7, typename p8 >
 	struct Implementation< _retType( * )( p1, p2, p3, p4, p5, p6, p7, p8 ) >
 	{
-		typedef typename _retType							return_type;
+		typedef _retType									return_type;
 		typedef void										object_type;
 		typedef return_type( * signature )( p1, p2, p3, p4, p5, p6, p7, p8 );
 		typedef signature									raw_signature;
@@ -338,7 +338,7 @@ namespace functiontraits
 	template< typename _retType, typename p1, typename p2, typename p3, typename p4, typename p5, typename p6, typename p7, typename p8, typename p9 >
 	struct Implementation< _retType( * )( p1, p2, p3, p4, p5, p6, p7, p8, p9 ) >
 	{
-		typedef typename _retType							return_type;
+		typedef _retType									return_type;
 		typedef void										object_type;
 		typedef return_type( * signature )( p1, p2, p3, p4, p5, p6, p7, p8, p9 );
 		typedef signature									raw_signature;
@@ -357,8 +357,8 @@ namespace functiontraits
 	template< typename _retType, typename _objType >
 	struct Implementation< _retType( _objType::* )( ) >
 	{
-		typedef typename _retType							return_type;
-		typedef typename _objType							object_type;
+		typedef _retType									return_type;
+		typedef _objType									object_type;
 		typedef return_type( object_type::* signature )( );
 		typedef return_type( * raw_signature )( object_type* const );
 
@@ -372,8 +372,8 @@ namespace functiontraits
 	template< typename _retType, typename _objType, typename p1 >
 	struct Implementation< _retType( _objType::* )( p1 ) >
 	{
-		typedef typename _retType							return_type;
-		typedef typename _objType							object_type;
+		typedef _retType									return_type;
+		typedef _objType									object_type;
 		typedef return_type( object_type::* signature )( p1 );
 		typedef return_type( * raw_signature )( object_type* const, p1 );
 
@@ -389,8 +389,8 @@ namespace functiontraits
 	template< typename _retType, typename _objType, typename p1, typename p2 >
 	struct Implementation< _retType( _objType::* )( p1, p2 ) >
 	{
-		typedef typename _retType							return_type;
-		typedef typename _objType							object_type;
+		typedef _retType									return_type;
+		typedef _objType									object_type;
 		typedef return_type( object_type::* signature )( p1, p2 );
 		typedef return_type( * raw_signature )( object_type* const, p1, p2 );
 
@@ -406,8 +406,8 @@ namespace functiontraits
 	template< typename _retType, typename _objType, typename p1, typename p2, typename p3 >
 	struct Implementation< _retType( _objType::* )( p1, p2, p3 ) >
 	{
-		typedef typename _retType							return_type;
-		typedef typename _objType							object_type;
+		typedef _retType									return_type;
+		typedef _objType									object_type;
 		typedef return_type( object_type::* signature )( p1, p2, p3 );
 		typedef return_type( * raw_signature )( object_type* const, p1, p2, p3 );
 
@@ -423,8 +423,8 @@ namespace functiontraits
 	template< typename _retType, typename _objType, typename p1, typename p2, typename p3, typename p4 >
 	struct Implementation< _retType( _objType::* )( p1, p2, p3, p4 ) >
 	{
-		typedef typename _retType							return_type;
-		typedef typename _objType							object_type;
+		typedef _retType									return_type;
+		typedef _objType									object_type;
 		typedef return_type( object_type::* signature )( p1, p2, p3, p4 );
 		typedef return_type( * raw_signature )( object_type* const, p1, p2, p3, p4 );
 
@@ -440,8 +440,8 @@ namespace functiontraits
 	template< typename _retType, typename _objType, typename p1, typename p2, typename p3, typename p4, typename p5 >
 	struct Implementation< _retType( _objType::* )( p1, p2, p3, p4, p5 ) >
 	{
-		typedef typename _retType							return_type;
-		typedef typename _objType							object_type;
+		typedef _retType									return_type;
+		typedef _objType									object_type;
 		typedef return_type( object_type::* signature )( p1, p2, p3, p4, p5 );
 		typedef return_type( * raw_signature )( object_type* const, p1, p2, p3, p4, p5 );
 
@@ -457,8 +457,8 @@ namespace functiontraits
 	template< typename _retType, typename _objType, typename p1, typename p2, typename p3, typename p4, typename p5, typename p6 >
 	struct Implementation< _retType( _objType::* )( p1, p2, p3, p4, p5, p6 ) >
 	{
-		typedef typename _retType							return_type;
-		typedef typename _objType							object_type;
+		typedef _retType									return_type;
+		typedef _objType									object_type;
 		typedef return_type( object_type::* signature )( p1, p2, p3, p4, p5, p6 );
 		typedef return_type( * raw_signature )( object_type* const, p1, p2, p3, p4, p5, p6 );
 
@@ -474,8 +474,8 @@ namespace functiontraits
 	template< typename _retType, typename _objType, typename p1, typename p2, typename p3, typename p4, typename p5, typename p6, typename p7 >
 	struct Implementation< _retType( _objType::* )( p1, p2, p3, p4, p5, p6, p7 ) >
 	{
-		typedef typename _retType							return_type;
-		typedef typename _objType							object_type;
+		typedef _retType									return_type;
+		typedef _objType									object_type;
 		typedef return_type( object_type::* signature )( p1, p2, p3, p4, p5, p6, p7 );
 		typedef return_type( * raw_signature )( object_type* const, p1, p2, p3, p4, p5, p6, p7 );
 
@@ -491,8 +491,8 @@ namespace functiontraits
 	template< typename _retType, typename _objType, typename p1, typename p2, typename p3, typename p4, typename p5, typename p6, typename p7, typename p8 >
 	struct Implementation< _retType( _objType::* )( p1, p2, p3, p4, p5, p6, p7, p8 ) >
 	{
-		typedef typename _retType							return_type;
-		typedef typename _objType							object_type;
+		typedef _retType									return_type;
+		typedef _objType									object_type;
 		typedef return_type( object_type::* signature )( p1, p2, p3, p4, p5, p6, p7, p8 );
 		typedef return_type( * raw_signature )( object_type* const, p1, p2, p3, p4, p5, p6, p7, p8 );
 
@@ -508,8 +508,8 @@ namespace functiontraits
 	template< typename _retType, typename _objType, typename p1, typename p2, typename p3, typename p4, typename p5, typename p6, typename p7, typename p8, typename p9 >
 	struct Implementation< _retType( _objType::* )( p1, p2, p3, p4, p5, p6, p7, p8, p9 ) >
 	{
-		typedef typename _retType							return_type;
-		typedef typename _objType							object_type;
+		typedef _retType									return_type;
+		typedef _objType									object_type;
 		typedef return_type( object_type::* signature )( p1, p2, p3, p4, p5, p6, p7, p8, p9 );
 		typedef return_type( * raw_signature )( object_type* const, p1, p2, p3, p4, p5, p6, p7, p8, p9 );
 
@@ -527,8 +527,8 @@ namespace functiontraits
 	template< typename _retType, typename _objType >
 	struct Implementation< _retType( _objType::* )( ) const >
 	{
-		typedef typename _retType							return_type;
-		typedef typename _objType							object_type;
+		typedef _retType									return_type;
+		typedef _objType									object_type;
 		typedef return_type( object_type::* signature )( ) const;
 		typedef return_type( * raw_signature )( object_type* const );
 
@@ -542,8 +542,8 @@ namespace functiontraits
 	template< typename _retType, typename _objType, typename p1 >
 	struct Implementation< _retType( _objType::* )( p1 ) const >
 	{
-		typedef typename _retType							return_type;
-		typedef typename _objType							object_type;
+		typedef _retType									return_type;
+		typedef _objType									object_type;
 		typedef return_type( object_type::* signature )( p1 ) const;
 		typedef return_type( * raw_signature )( object_type* const, p1 );
 
@@ -559,8 +559,8 @@ namespace functiontraits
 	template< typename _retType, typename _objType, typename p1, typename p2 >
 	struct Implementation< _retType( _objType::* )( p1, p2 ) const >
 	{
-		typedef typename _retType							return_type;
-		typedef typename _objType							object_type;
+		typedef _retType									return_type;
+		typedef _objType									object_type;
 		typedef return_type( object_type::* signature )( p1, p2 ) const;
 		typedef return_type( * raw_signature )( object_type* const, p1, p2 );
 
@@ -576,8 +576,8 @@ namespace functiontraits
 	template< typename _retType, typename _objType, typename p1, typename p2, typename p3 >
 	struct Implementation< _retType( _objType::* )( p1, p2, p3 ) const >
 	{
-		typedef typename _retType							return_type;
-		typedef typename _objType							object_type;
+		typedef _retType									return_type;
+		typedef _objType									object_type;
 		typedef return_type( object_type::* signature )( p1, p2, p3 ) const;
 		typedef return_type( * raw_signature )( object_type* const, p1, p2, p3 );
 
@@ -593,8 +593,8 @@ namespace functiontraits
 	template< typename _retType, typename _objType, typename p1, typename p2, typename p3, typename p4 >
 	struct Implementation< _retType( _objType::* )( p1, p2, p3, p4 ) const >
 	{
-		typedef typename _retType							return_type;
-		typedef typename _objType							object_type;
+		typedef _retType									return_type;
+		typedef _objType									object_type;
 		typedef return_type( object_type::* signature )( p1, p2, p3, p4 ) const;
 		typedef return_type( * raw_signature )( object_type* const, p1, p2, p3, p4 );
 
@@ -610,8 +610,8 @@ namespace functiontraits
 	template< typename _retType, typename _objType, typename p1, typename p2, typename p3, typename p4, typename p5 >
 	struct Implementation< _retType( _objType::* )( p1, p2, p3, p4, p5 ) const >
 	{
-		typedef typename _retType							return_type;
-		typedef typename _objType							object_type;
+		typedef _retType									return_type;
+		typedef _objType									object_type;
 		typedef return_type( object_type::* signature )( p1, p2, p3, p4, p5 ) const;
 		typedef return_type( * raw_signature )( object_type* const, p1, p2, p3, p4, p5 );
 
@@ -627,8 +627,8 @@ namespace functiontraits
 	template< typename _retType, typename _objType, typename p1, typename p2, typename p3, typename p4, typename p5, typename p6 >
 	struct Implementation< _retType( _objType::* )( p1, p2, p3, p4, p5, p6 ) const >
 	{
-		typedef typename _retType							return_type;
-		typedef typename _objType							object_type;
+		typedef _retType									return_type;
+		typedef _objType									object_type;
 		typedef return_type( object_type::* signature )( p1, p2, p3, p4, p5, p6 ) const;
 		typedef return_type( * raw_signature )( object_type* const, p1, p2, p3, p4, p5, p6 );
 
@@ -644,8 +644,8 @@ namespace functiontraits
 	template< typename _retType, typename _objType, typename p1, typename p2, typename p3, typename p4, typename p5, typename p6, typename p7 >
 	struct Implementation< _retType( _objType::* )( p1, p2, p3, p4, p5, p6, p7 ) const >
 	{
-		typedef typename _retType							return_type;
-		typedef typename _objType							object_type;
+		typedef _retType									return_type;
+		typedef _objType									object_type;
 		typedef return_type( object_type::* signature )( p1, p2, p3, p4, p5, p6, p7 ) const;
 		typedef return_type( * raw_signature )( object_type* const, p1, p2, p3, p4, p5, p6, p7 );
 
@@ -661,8 +661,8 @@ namespace functiontraits
 	template< typename _retType, typename _objType, typename p1, typename p2, typename p3, typename p4, typename p5, typename p6, typename p7, typename p8 >
 	struct Implementation< _retType( _objType::* )( p1, p2, p3, p4, p5, p6, p7, p8 ) const >
 	{
-		typedef typename _retType							return_type;
-		typedef typename _objType							object_type;
+		typedef _retType									return_type;
+		typedef _objType									object_type;
 		typedef return_type( object_type::* signature )( p1, p2, p3, p4, p5, p6, p7, p8 ) const;
 		typedef return_type( * raw_signature )( object_type* const, p1, p2, p3, p4, p5, p6, p7, p8 );
 
@@ -678,8 +678,8 @@ namespace functiontraits
 	template< typename _retType, typename _objType, typename p1, typename p2, typename p3, typename p4, typename p5, typename p6, typename p7, typename p8, typename p9 >
 	struct Implementation< _retType( _objType::* )( p1, p2, p3, p4, p5, p6, p7, p8, p9 ) const >
 	{
-		typedef typename _retType							return_type;
-		typedef typename _objType							object_type;
+		typedef _retType									return_type;
+		typedef _objType									object_type;
 		typedef return_type( object_type::* signature )( p1, p2, p3, p4, p5, p6, p7, p8, p9 ) const;
 		typedef return_type( * raw_signature )( object_type* const, p1, p2, p3, p4, p5, p6, p7, p8, p9 );
 

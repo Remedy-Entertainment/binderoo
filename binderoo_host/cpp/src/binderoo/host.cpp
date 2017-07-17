@@ -186,6 +186,7 @@ namespace binderoo
 	{
 		HostImportedObjectInstance()
 			: pInstance( nullptr )
+			, m_bHadInstance( false )
 		{
 		}
 		//--------------------------------------------------------------------
@@ -195,6 +196,7 @@ namespace binderoo
 
 		InternalString									strReloadData;
 		ImportedBase*									pInstance;
+		bool											m_bHadInstance;
 	};
 	//------------------------------------------------------------------------
 
@@ -461,11 +463,14 @@ void binderoo::HostImplementation::saveObjectData()
 		if( obj.pInstance->pObjectInstance )
 		{
 			const HostBoundObject* pObjDescriptor = (const HostBoundObject*)obj.pInstance->pObjectDescriptor;
-			obj.strReloadData = pObjDescriptor->pObject->serialise( obj.pInstance->pObjectInstance );
+			const char* pSerialised = pObjDescriptor->pObject->serialise( obj.pInstance->pObjectInstance );
+			obj.strReloadData = pSerialised ? pSerialised : "";
+			obj.m_bHadInstance = true;
 		}
 		else
 		{
 			obj.strReloadData.clear();
+			obj.m_bHadInstance = false;
 		}
 	}
 }
@@ -475,11 +480,12 @@ void binderoo::HostImplementation::loadObjectData()
 {
 	for( HostImportedObjectInstance& obj : vecImportClassInstances )
 	{
-		if( !obj.strReloadData.empty() )
+		if( obj.m_bHadInstance )
 		{
 			const HostBoundObject* pObjDescriptor = (const HostBoundObject*)obj.pInstance->pObjectDescriptor;
 			pObjDescriptor->pObject->deserialise( obj.pInstance->pObjectInstance, obj.strReloadData.c_str() );
 			obj.strReloadData.clear();
+			obj.m_bHadInstance = false;
 		}
 	}
 }
@@ -554,7 +560,7 @@ void binderoo::HostImplementation::recreateImportedObjects()
 		if( pObject )
 		{
 			obj.pInstance->pObjectDescriptor = (void*)pObject;
-			if( !obj.strReloadData.empty() )
+			if( obj.m_bHadInstance )
 			{
 				obj.pInstance->pObjectInstance = pObject->pObject->alloc( 1 );
 			}
